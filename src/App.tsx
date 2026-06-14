@@ -27,7 +27,8 @@ import {
   LogOut,
   Save,
   History,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 
 import WelcomeScreen from './components/WelcomeScreen';
@@ -247,6 +248,11 @@ export default function App() {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [sqlStatus, setSqlStatus] = useState<string | null>(null);
   const [isCapturingScreen, setIsCapturingScreen] = useState(false);
+
+  // Improvements: Smart Text/CSV Parser and Pallet type
+  const [isSmartImportOpen, setIsSmartImportOpen] = useState<boolean>(false);
+  const [smartImportRawText, setSmartImportRawText] = useState<string>('');
+  const [palletType, setPalletType] = useState<'EUR' | 'US'>('EUR');
 
   // Modern global toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -498,6 +504,174 @@ export default function App() {
     setActiveColorIdx(Math.max(0, activeColorIdx - 1));
     setHasGenerated(false);
     updateFilenameAndTotal(meta, nextColors);
+  };
+
+  const handleSmartImport = (text: string, strategy: 'replace' | 'merge') => {
+    if (!text.trim()) {
+      triggerToast('Saisie vide', 'error');
+      return;
+    }
+
+    try {
+      const templateColor = colors[0] || {
+        tailles: [...DEFAULT_SIZES],
+        sizes: {}
+      };
+
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#') && !l.startsWith('//'));
+      if (lines.length === 0) {
+        triggerToast('Données introuvables. Vérifiez le format.', 'error');
+        return;
+      }
+
+      // Check if tabular copy
+      const isTabular = lines[0].includes('\t') || lines.some(l => l.split('\t').length > 2);
+      const parsedList: ColorConfig[] = [];
+
+      if (isTabular) {
+        // Tabular processing
+        const table = lines.map(line => line.split('\t').map(c => c.trim()));
+        const headers = table[0].slice(1).filter(Boolean).map(h => h.toUpperCase());
+        
+        for (let r = 1; r < table.length; r++) {
+          const row = table[r];
+          if (!row[0]) continue;
+          const colorName = row[0].toUpperCase();
+          const sizesDict: { [sz: string]: SizeDetails } = {};
+
+          headers.forEach((sz, colIdx) => {
+            const valStr = row[colIdx + 1] || '0';
+            const qty = parseInt(valStr.replace(/[^0-9]/g, ''), 10) || 0;
+            
+            // Derive spec from template if available
+            const templateSpec = templateColor.sizes[sz] || Object.values(templateColor.sizes)[0];
+            sizesDict[sz] = {
+              qtyTot: qty,
+              cap: templateSpec?.cap || 25,
+              wPiece: templateSpec?.wPiece || 0.25,
+              wCarton: templateSpec?.wCarton || 0.8,
+              cbmUnit: templateSpec?.cbmUnit || (61 * 41 * 30) / 1000000,
+              dimL: templateSpec?.dimL || 61,
+              diml: templateSpec?.diml || 41,
+              dimH: templateSpec?.dimH || 30,
+              sku: ''
+            };
+          });
+
+          parsedList.push({
+            nom: colorName,
+            mode: 'inherit',
+            tailles: headers,
+            sizes: sizesDict
+          });
+        }
+      } else {
+        // Line-by-line format: BLEU - XS:10 S:20
+        lines.forEach((line, lIdx) => {
+          let colorName = '';
+          let remaining = line;
+          const delimiters = [' - ', ' – ', ' : ', ' -> ', ' > ', ':', '-'];
+          
+          for (const d of delimiters) {
+            const idx = remaining.indexOf(d);
+            if (idx > 0) {
+              colorName = remaining.substring(0, idx).trim();
+              remaining = remaining.substring(idx + d.length).trim();
+              break;
+            }
+          }
+
+          if (!colorName) {
+            colorName = `COULEUR_${lIdx + 1}`;
+          }
+
+          const pairRegex = /([A-Z0-9.\-/]{1,8})\s*[:=\s\-]+\s*([0-9]+)/gi;
+          let match;
+          const sizesDict: { [sz: string]: SizeDetails } = {};
+          const detectedSizes: string[] = [];
+
+          while ((match = pairRegex.exec(remaining)) !== null) {
+            const szName = match[1].toUpperCase().trim();
+            const qty = parseInt(match[2], 10) || 0;
+
+            if (szName) {
+              detectedSizes.push(szName);
+              const templateSpec = templateColor.sizes[szName] || Object.values(templateColor.sizes)[0];
+              sizesDict[szName] = {
+                qtyTot: qty,
+                cap: templateSpec?.cap || 25,
+                wPiece: templateSpec?.wPiece || 0.25,
+                wCarton: templateSpec?.wCarton || 0.8,
+                cbmUnit: templateSpec?.cbmUnit || (61 * 41 * 30) / 1000000,
+                dimL: templateSpec?.dimL || 61,
+                diml: templateSpec?.diml || 41,
+                dimH: templateSpec?.dimH || 30,
+                sku: ''
+              };
+            }
+          }
+
+          if (detectedSizes.length > 0) {
+            parsedList.push({
+              nom: colorName.toUpperCase(),
+              mode: 'inherit',
+              tailles: detectedSizes,
+              sizes: sizesDict
+            });
+          }
+        });
+      }
+
+      if (parsedList.length === 0) {
+        triggerToast('Format non reconnu ou aucune donnée extraite.', 'error');
+        return;
+      }
+
+      let finalColors: ColorConfig[] = [];
+      if (strategy === 'replace') {
+        finalColors = parsedList;
+      } else {
+        // Merge strategy: update or append
+        const originalColors = [...colors];
+        parsedList.forEach(newCol => {
+          const matchIdx = originalColors.findIndex(c => c.nom.toUpperCase() === newCol.nom.toUpperCase());
+          if (matchIdx !== -1) {
+            // merge size values
+            const updatedSizes = { ...originalColors[matchIdx].sizes };
+            const mergedSizesList = [...originalColors[matchIdx].tailles];
+
+            newCol.tailles.forEach(sz => {
+              if (!mergedSizesList.includes(sz)) {
+                mergedSizesList.push(sz);
+              }
+              updatedSizes[sz] = {
+                ...updatedSizes[sz],
+                qtyTot: newCol.sizes[sz].qtyTot
+              };
+            });
+
+            originalColors[matchIdx] = {
+              ...originalColors[matchIdx],
+              tailles: mergedSizesList,
+              sizes: updatedSizes
+            };
+          } else {
+            originalColors.push(newCol);
+          }
+        });
+        finalColors = originalColors;
+      }
+
+      setColors(finalColors);
+      setActiveColorIdx(strategy === 'replace' ? 0 : finalColors.length - 1);
+      setHasGenerated(false);
+      setIsSmartImportOpen(false);
+      setSmartImportRawText('');
+      updateFilenameAndTotal(meta, finalColors);
+      triggerToast(`✅ Importation réussie : ${parsedList.length} couleur(s) traitée(s) !`, 'success');
+    } catch (e: any) {
+      triggerToast(`Erreur d'importation: ${e.message}`, 'error');
+    }
   };
 
   const handleUpdateColorName = (val: string) => {
@@ -1270,6 +1444,115 @@ export default function App() {
           onClose={() => setIsMajBsdOpen(false)}
           onSaveDatabase={handleSaveDatabase}
         />
+      )}
+
+      {/* Smart Raw Text / Excel Import Modal */}
+      {isSmartImportOpen && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[9500] backdrop-blur-xs px-4">
+          <div className="bg-[#1a1d27] border border-indigo-550/70 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+                <h3 className="text-sm font-mono text-indigo-400 font-bold uppercase">
+                  ⚡ PORTAIL DE SAISIE RAPIDE DIRECTE
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsSmartImportOpen(false)}
+                className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs text-slate-350 leading-relaxed">
+                Gagnez du temps en évitant la saisie manuelle cellule par cellule ! Collez vos données au choix : 
+                soit sous forme de <strong>liste texte directe</strong>, soit sous forme de <strong>grille tabulée</strong> copiée depuis Excel.
+              </p>
+
+              {/* Demo Pre-fills triggers */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-mono text-slate-500 uppercase font-black">Modèles de test :</span>
+                <button
+                  type="button"
+                  onClick={() => setSmartImportRawText(
+                    "ROUGE - XS:120, S:240, M:300, L:200, XL:80\n" +
+                    "BLEU - XS:80, S:150, M:180, L:130, XL:50\n" +
+                    "NOIR - S:90, M:200, L:150"
+                  )}
+                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-705/60 cursor-pointer transition-all"
+                >
+                  📋 Saisie en ligne
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSmartImportRawText(
+                    "Couleur\tXS\tS\tM\tL\tXL\n" +
+                    "NAVY\t100\t150\t200\t120\t80\n" +
+                    "CYAN\t60\t90\t120\t100\t40\n" +
+                    "KAKI\t80\t140\t160\t110\t70"
+                  )}
+                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-705/60 cursor-pointer transition-all"
+                >
+                  📊 Grille Excel (Tabulé)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSmartImportRawText(""); }}
+                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-705/60 cursor-pointer transition-all ml-auto"
+                >
+                  🗑️ Effacer
+                </button>
+              </div>
+
+              {/* Raw Input Text Area */}
+              <div className="flex flex-col gap-1.5 font-sans">
+                <label className="text-[10px] font-mono text-slate-500 uppercase font-bold">
+                  Saisissez ou collez vos données ici :
+                </label>
+                <textarea
+                  value={smartImportRawText}
+                  onChange={(e) => setSmartImportRawText(e.target.value)}
+                  placeholder={`ex: ROUGE - XS:120, S:180, M:240, L:150\nou copiez-collez tout un tableau rectangulaire d'une feuille Excel.`}
+                  rows={8}
+                  className="w-full text-xs font-mono rounded-lg border px-3 py-2.5 focus:outline-none focus:border-indigo-500 bg-[#161a23] border-slate-804 text-slate-100 placeholder-slate-600 focus:ring-1 focus:ring-indigo-505/20"
+                />
+              </div>
+
+              {/* Smart format instructions status */}
+              <div className="bg-[#121522]/60 border border-slate-804 p-3 rounded-xl space-y-1.5 text-[11px] text-slate-400">
+                <span className="text-[10px] font-mono text-[#ff5000] font-black uppercase tracking-wider block">💡 Astuce Spécifications :</span>
+                <p>
+                  Les nouvelles tailles importées hériteront automatiquement des capacités max (Cap), du poids par pièce, et des dimensions du gabarit carton définis sur vos gabarits modèles actuels !
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-800 font-sans">
+              <button
+                onClick={() => setIsSmartImportOpen(false)}
+                className="py-2.5 px-4 rounded-lg font-mono text-xs border border-slate-700 text-slate-400 hover:bg-slate-800 cursor-pointer transition-colors"
+              >
+                Annuler
+              </button>
+              <div className="flex-1 flex gap-2">
+                <button
+                  onClick={() => handleSmartImport(smartImportRawText, 'merge')}
+                  className="flex-1 py-2.5 bg-[#222636] hover:bg-slate-800 text-slate-105 border border-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  ⚡ FUSIONNER AVEC L'EXISTANT
+                </button>
+                <button
+                  onClick={() => handleSmartImport(smartImportRawText, 'replace')}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg hover:shadow-indigo-600/15 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  ⚠️ REMPLACER ET ÉCRASER TOUT
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* PDF Selection Print Overlay */}
@@ -2424,7 +2707,7 @@ export default function App() {
                           ))}
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             onClick={handleAddColorTab}
                             className="px-3 py-1.5 bg-[#ff5000]/10 hover:bg-[#ff5000]/20 border border-[#ff5000]/30 text-[#ff5000] font-sans font-bold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
@@ -2436,6 +2719,13 @@ export default function App() {
                             className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> － Couleur
+                          </button>
+                          <button
+                            onClick={() => setIsSmartImportOpen(true)}
+                            className="px-3 py-1.5 bg-indigo-550/10 hover:bg-indigo-550/20 border border-indigo-550/30 text-indigo-500 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            title="Saisie ultra-rapide par copier-coller de texte simple ou de tableaux Excel"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" /> ⚡ Saisie Rapide
                           </button>
                         </div>
                       </div>
@@ -3680,6 +3970,191 @@ export default function App() {
                             </div>
                           </div>
 
+                        </div>
+
+                        {/* 📦 ESTIMATEUR DE PALETTISATION & SIMULATEUR DE CHARGEMENT */}
+                        <div className={`mt-6 p-5 rounded-2xl border ${darkMode ? 'bg-[#151926] border-slate-800' : 'bg-white border-slate-200'} shadow-md space-y-5 font-sans`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+                              <h3 className={`text-xs font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                                📦 Simulateur Logistique : Palettisation & Chargement Conteneur
+                              </h3>
+                            </div>
+                            {/* Pallet Switcher Selector */}
+                            <div className="flex items-center gap-1 bg-[#1a1f2e] border border-slate-700/60 p-1 rounded-lg">
+                              <button
+                                type="button"
+                                onClick={() => setPalletType('EUR')}
+                                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                  palletType === 'EUR'
+                                    ? 'bg-indigo-600 text-white shadow'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                Palette EUR (120x80cm)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPalletType('US')}
+                                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                                  palletType === 'US'
+                                    ? 'bg-indigo-600 text-white shadow'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                Palette US (120x100cm)
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Calculations for pallets */}
+                          {(() => {
+                            const palletVolumeLimit = palletType === 'EUR' ? 1.392 : 1.764; // holds ~1.39m3 & 1.76m3 stacked safely at max loading height
+                            const palletWeightLimit = palletType === 'EUR' ? 1500 : 2000;
+                            
+                            const pctVolumeOfOnePallet = (grandTotals.v / palletVolumeLimit) * 100;
+                            const palletsNeededFraction = grandTotals.v / palletVolumeLimit;
+                            const fullPalletsCount = Math.floor(palletsNeededFraction);
+                            const lastPalletFilling = Math.round((palletsNeededFraction - fullPalletsCount) * 100);
+                            const totalPalletsNeeded = Math.ceil(palletsNeededFraction) || 0;
+
+                            // Containers
+                            const gp20Pct = Math.min((grandTotals.v / 33) * 100, 100);
+                            const gp40Pct = Math.min((grandTotals.v / 67) * 100, 100);
+                            const hc40Pct = Math.min((grandTotals.v / 76) * 100, 100);
+
+                            // Recommend best container format
+                            let recommendedContainer = 'Conteneur 20 pieds Standard (20ft GP)';
+                            let recommendedColor = 'text-emerald-400';
+                            let recommendedBg = 'border-emerald-500/30 bg-emerald-500/5';
+                            if (grandTotals.v > 67) {
+                              recommendedContainer = 'Conteneur 40 pieds High Cube (40ft HC)';
+                              recommendedColor = 'text-amber-400';
+                              recommendedBg = 'border-amber-500/30 bg-amber-500/5';
+                            } else if (grandTotals.v > 33) {
+                              recommendedContainer = 'Conteneur 40 pieds Standard (40ft GP)';
+                              recommendedColor = 'text-indigo-400';
+                              recommendedBg = 'border-indigo-500/30 bg-indigo-500/5';
+                            }
+
+                            return (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
+                                {/* Left: Statistics report card */}
+                                <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'} space-y-4`}>
+                                  <div className="text-xs uppercase font-mono font-bold tracking-wider text-slate-400 pb-2 border-b border-slate-800/45">
+                                    📋 ANALYSE DE SURCHARGE & VOLUMÉTRIES
+                                  </div>
+                                  <div className="space-y-3 font-mono">
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500 font-bold">Volume total cargaison :</span>
+                                      <span className="font-semibold text-slate-200">{grandTotals.v.toFixed(3)} m³</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500 font-bold">Poids total cargaison :</span>
+                                      <span className="font-semibold text-teal-400">{grandTotals.g.toFixed(1)} kg</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span className="text-slate-500 font-bold">Limites par palette :</span>
+                                      <span className="text-slate-400 text-[11px] font-semibold">{palletWeightLimit} kg / {palletVolumeLimit} m³</span>
+                                    </div>
+                                    <div className="border-t border-slate-800/60 pt-2 flex flex-col gap-1">
+                                      <span className="text-[10px] text-slate-500 uppercase font-black">Estimation d'espace palettes :</span>
+                                      <span className="text-sm font-black text-[#ff5000]">
+                                        {totalPalletsNeeded === 0 
+                                          ? 'Aucune palette' 
+                                          : `${totalPalletsNeeded} Palettes requises`
+                                        }
+                                      </span>
+                                      {fullPalletsCount > 0 && (
+                                        <span className="text-[10.5px] text-slate-400">
+                                          ({fullPalletsCount} palette(s) à 100% {lastPalletFilling > 0 ? `+ 1 remplie à ${lastPalletFilling}%` : ''})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Center: Interactive dynamic visual palletizing cards stack representation */}
+                                <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900/45 border-slate-800/80 shadow-inner' : 'bg-slate-50 border-slate-200'} flex flex-col justify-between h-full`}>
+                                  <div className="text-xs uppercase font-mono font-bold tracking-wider text-slate-400 pb-2 border-b border-slate-800/45">
+                                    🏢 MODULE DE GERBAGE DES PALETTES
+                                  </div>
+                                  <div className="flex items-end justify-center gap-1.5 py-4 h-24">
+                                    {totalPalletsNeeded === 0 ? (
+                                      <div className="text-xs text-slate-500 text-center uppercase font-mono">Aucun colis à charger</div>
+                                    ) : (
+                                      Array.from({ length: Math.min(totalPalletsNeeded, 8) }).map((_, index) => {
+                                        const isLast = index === totalPalletsNeeded - 1;
+                                        const fillPercent = isLast && lastPalletFilling > 0 ? lastPalletFilling : 100;
+                                        return (
+                                          <div key={index} className="flex flex-col items-center gap-1.5 w-6 group relative">
+                                            {/* Tooltip */}
+                                            <div className="absolute bottom-full mb-1.5 hidden group-hover:flex bg-slate-900 text-[10px] text-white p-1 rounded font-mono shadow-md whitespace-nowrap z-50">
+                                              Palette #{index + 1} ({fillPercent}% Pleine)
+                                            </div>
+                                            {/* Pallet structure layout */}
+                                            <div className="w-full h-14 bg-slate-900 border border-slate-700/60 rounded-sm flex flex-col justify-end overflow-hidden p-0.5">
+                                              <div
+                                                className="w-full bg-gradient-to-t from-indigo-500 to-indigo-600 rounded-xs transition-all duration-700"
+                                                style={{ height: `${fillPercent}%` }}
+                                              />
+                                            </div>
+                                            {/* Wooden board */}
+                                            <div className="h-1 w-full bg-amber-700/80 rounded-full" />
+                                            <span className="text-[9px] font-mono text-slate-500 font-bold">P{index + 1}</span>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                    {totalPalletsNeeded > 8 && (
+                                      <div className="text-slate-400 text-xs font-bold self-center font-mono pl-1">+{totalPalletsNeeded - 8} ...</div>
+                                    )}
+                                  </div>
+                                  <p className="text-[10.5px] text-slate-500 text-center font-semibold">
+                                    Hauteur empilement conseillée : ~1.45m maximum
+                                  </p>
+                                </div>
+
+                                {/* Right: Container Space Projections options */}
+                                <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'} flex flex-col justify-between gap-3`}>
+                                  <div>
+                                    <div className="text-xs uppercase font-mono font-bold tracking-wider text-slate-400 pb-2 border-b border-slate-800/45">
+                                      🛳️ UTILISATION DU CONTENEUR MARITIME
+                                    </div>
+                                    <div className="space-y-2.5 pt-3">
+                                      {/* GP 20 */}
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px] font-mono">
+                                          <span className="text-slate-400">Conteneur 20 pieds (33m³)</span>
+                                          <span className="text-slate-350">{gp20Pct.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                                          <div className={`h-full rounded-full ${gp20Pct >= 98 ? 'bg-indigo-650' : gp20Pct > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${gp20Pct}%` }} />
+                                        </div>
+                                      </div>
+                                      {/* GP 40 */}
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between text-[11px] font-mono">
+                                          <span className="text-slate-400">Conteneur 40 pieds (67m³)</span>
+                                          <span className="text-slate-350">{gp40Pct.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-850 rounded-full overflow-hidden">
+                                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${gp40Pct}%` }} />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Recommendation panel */}
+                                  <div className={`p-2.5 rounded-lg border text-xs leading-normal ${recommendedBg} ${recommendedColor}`}>
+                                    <span className="text-[9.5px] font-mono font-black uppercase tracking-wider block">Option recommandée :</span>
+                                    <p className="font-bold text-[11px] font-sans mt-0.5">{recommendedContainer}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Bottom Row: Detailed Recap Matrix */}
