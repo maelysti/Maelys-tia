@@ -1665,7 +1665,7 @@ export default function App() {
   const summaryUniqueSizes = getOverallUniqueSizes();
 
   return (
-    <div className={`min-h-screen font-sans ${darkMode ? 'bg-[#0a0d14] text-slate-100' : 'bg-[#f4f6fa] text-slate-900'} transition-colors duration-300 pb-12`}>
+    <div className={`min-h-screen font-sans bg-grid-pattern ${darkMode ? 'bg-[#0a0e17] text-slate-100' : 'bg-[#f8fafc] text-slate-900'} transition-colors duration-300 pb-12`}>
       
       {/* Dynamic Modal components */}
       {boxModalCtx?.isOpen && (
@@ -1978,17 +1978,33 @@ export default function App() {
       )}
       {/* HEADER & ACTIONS TOP BLOCK (STICKY) */}
       <div className={`sticky top-0 z-40 print:hidden transition-all duration-300 border-b pb-1.5 shadow-sm ${
-        darkMode ? 'bg-[#0a0d14]/95 border-slate-800/80 shadow-black/15' : 'bg-[#f4f6fa]/95 border-slate-200/80'
+        darkMode ? 'bg-[#0a0e17]/95 border-slate-800/80 shadow-black/25' : 'bg-white/95 border-slate-200/80 shadow-slate-100/50'
       } backdrop-blur-md`}>
         {/* Sleek Top Bar containing GENERATE, Reset, Excel, PDF, SQL Export, SQL Import, Mode toggle */}
         <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2.5 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-7.5 h-7.5 bg-gradient-to-r from-[#ff5000] to-[#ff9900] rounded-lg flex items-center justify-center shadow-md shadow-orange-500/15">
-              <Package className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-tr from-[#ff3c00] via-[#ff5000] to-[#ffaa00] rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Package className="w-5 h-5 text-white animate-bounce" style={{ animationDuration: '3.5s' }} />
             </div>
             <div className="flex flex-col">
-              <span className={`text-xs font-black tracking-wider uppercase font-sans ${darkMode ? 'text-white' : 'text-slate-900'}`}>Andry <span className="text-[#ff5000]">Nantenaina</span></span>
-              <span className="text-[8px] font-mono tracking-widest text-[#94a3b8] -mt-0.5 uppercase">Logistique officer</span>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs font-black tracking-wider uppercase font-sans ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                  Andry <span className="text-[#ff5000]">Nantenaina</span>
+                </span>
+                <span className="relative flex h-2 w-2" title="Système de calcul connecté (Live)">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 -mt-0.5">
+                <span className="text-[8px] font-mono tracking-normal text-slate-400 font-bold uppercase py-0.5 px-1 rounded bg-slate-800/80 max-w-fit">
+                  PORTAIL FOURNISSEUR AGILÉ
+                </span>
+                <span className="text-[7.5px] font-mono text-[#94a3b8] border-l border-slate-700/60 pl-1.5">
+                  HUB: MARSEILLE-CARGO
+                </span>
+              </div>
             </div>
           </div>
 
@@ -2130,6 +2146,64 @@ export default function App() {
 
       {/* Main Container workspace */}
       <main className="max-w-7xl mx-auto px-4 space-y-6 print:px-0 pb-44 pt-6 mb-12">
+
+        {/* Live Supplier Metric Ticker */}
+        <div className={`w-full p-4 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-4 font-sans ${
+          darkMode 
+            ? 'bg-gradient-to-r from-[#111625] to-[#151b2e] border-slate-800/80 shadow-lg shadow-black/35' 
+            : 'bg-white border-slate-200/90 shadow-sm'
+        } print:hidden`}>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+              <span className="text-xl">🚢</span>
+            </div>
+            <div>
+              <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#ff5000]">
+                Portail Transit & Colisage
+              </div>
+              <div className={`text-xs font-black uppercase tracking-wide flex items-center gap-1.5 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                {grandTotals.p > 0 ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Saisie Active • {colors.length} Couleur(s)
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    Saisie requise
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-6 w-full md:w-auto divide-x divide-slate-200 dark:divide-slate-800">
+            <div className="px-3 lg:px-6">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block font-bold">TOTAL PIÈCES</span>
+              <span className={`text-sm lg:text-base font-black font-mono tracking-tight ${darkMode ? 'text-[#ff6600]' : 'text-[#ff5000]'}`}>
+                {grandTotals.p.toLocaleString('fr-FR')} Pcs
+              </span>
+            </div>
+            <div className="px-3 lg:px-6">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block font-bold">CARTONS PL</span>
+              <span className={`text-sm lg:text-base font-black font-mono tracking-tight ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                {grandTotals.c} Ctn(s)
+              </span>
+            </div>
+            <div className="px-3 lg:px-6">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block font-bold font-semibold">POIDS BRUT</span>
+              <span className="text-xs lg:text-sm font-bold font-mono text-teal-500 dark:text-teal-400 block truncate">
+                {grandTotals.g.toFixed(1)} kg
+              </span>
+            </div>
+            <div className="px-3 lg:px-6">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 block font-bold">VOLUME TOTAL</span>
+              <span className="text-xs lg:text-sm font-bold font-mono text-indigo-500 dark:text-indigo-400 block truncate">
+                {grandTotals.v.toFixed(3)} m³
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Mobile Header indicator explaining menu state */}
         <div className="lg:hidden flex items-center justify-between w-full p-3 border rounded-xl font-sans text-xs font-bold transition-all print:hidden shadow-xs border-dashed z-30 sticky top-[60px] bg-slate-100/90 dark:bg-slate-900/95 backdrop-blur-md border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200">
@@ -2511,14 +2585,24 @@ export default function App() {
                   transition={{ duration: 0.15 }}
                 >
                   {/* ORDER METADATA FRAME */}
-                  <div className={`rounded-xl border p-5 ${darkMode ? 'bg-[#161a23] border-slate-800' : 'bg-white border-slate-200'} space-y-4 transition-all duration-300 shadow-sm`}>
+                  <div className={`rounded-2xl border p-6 ${darkMode ? 'bg-[#111625] border-slate-800/90 shadow-lg shadow-black/20' : 'bg-white border-slate-200 shadow-sm'} space-y-5 transition-all duration-300`}>
                     
-                    {/* Plain Static Styled Header */}
-                    <div className="flex items-center gap-2 border-b border-dashed pb-3 border-slate-800/60">
-                      <div className="w-2 h-4 bg-[#ff5000] rounded-sm" />
-                      <h2 className={`text-xs font-mono font-bold tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-705'} uppercase`}>
-                        📋 Informations Commande & Références
-                      </h2>
+                    {/* Elegant Document Manifest look */}
+                    <div className="flex items-center justify-between border-b pb-4 border-dashed border-slate-200 dark:border-slate-800/80">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-5 bg-gradient-to-b from-[#ff5000] to-orange-600 rounded-md" />
+                        <div>
+                          <h2 className={`text-xs font-bold font-mono tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-800'} uppercase`}>
+                            📋 FICHE TRAÇABILITÉ & INFORMATIONS COMMANDE
+                          </h2>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wide">
+                            Enregistrement officiel de la cargaison et des instructions de routage transit
+                          </p>
+                        </div>
+                      </div>
+                      <span className="hidden sm:inline-block px-2.5 py-1 text-[9px] font-mono rounded-lg border border-slate-200 dark:border-slate-800 text-slate-450 uppercase font-black tracking-wider bg-slate-50 dark:bg-slate-900/40">
+                        DOC-REF-MASTER
+                      </span>
                     </div>
 
                     <div className="space-y-4 pt-1">
@@ -2758,14 +2842,24 @@ export default function App() {
                   transition={{ duration: 0.15 }}
                 >
                   {/* PACKING STRATEGY FRAME */}
-                  <div className={`rounded-xl border p-5 ${darkMode ? 'bg-[#161a23] border-slate-800' : 'bg-white border-slate-200'} space-y-4 transition-all duration-300 shadow-sm`}>
+                  <div className={`rounded-2xl border p-6 ${darkMode ? 'bg-[#111625] border-slate-800/90 shadow-lg shadow-black/20' : 'bg-white border-slate-200 shadow-sm'} space-y-5 transition-all duration-300`}>
                     
-                    {/* Plain Static Styled Header */}
-                    <div className="flex items-center gap-2 border-b border-dashed pb-3 border-slate-800/60">
-                      <div className="w-2 h-4 bg-orange-500 rounded-sm" />
-                      <h2 className={`text-xs font-mono font-bold tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-705'} uppercase`}>
-                        ⚙️ Stratégie de Colisage et d'Emballage
-                      </h2>
+                    {/* Elegant Document Manifest look */}
+                    <div className="flex items-center justify-between border-b pb-4 border-dashed border-slate-200 dark:border-slate-800/80">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-5 bg-gradient-to-b from-purple-500 to-indigo-600 rounded-md" />
+                        <div>
+                          <h2 className={`text-xs font-bold font-mono tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-800'} uppercase`}>
+                            ⚙️ CONFIGURATION DES ALGORITHMES & MODES D'EMBALLAGE
+                          </h2>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wide">
+                            Calcul optimisé de la répartition par carton solide ou mixte intelligent (Dossier colisage)
+                          </p>
+                        </div>
+                      </div>
+                      <span className="hidden sm:inline-block px-2.5 py-1 text-[9px] font-mono rounded-lg border border-slate-200 dark:border-slate-800 text-slate-450 uppercase font-black tracking-wider bg-slate-50 dark:bg-slate-900/40">
+                        OPT-ENG-V2
+                      </span>
                     </div>
 
                     <div className="space-y-4 pt-1">
@@ -2890,19 +2984,24 @@ export default function App() {
                     transition={{ duration: 0.15 }}
                   >
                   {/* SPREADSHEET COLORS EDITOR */}
-                  <div className={`rounded-xl border p-5 ${darkMode ? 'bg-[#121522] border-slate-800/80 shadow-black/25' : 'bg-white border-slate-200'} space-y-4 transition-all duration-300 shadow-sm`}>
+                  <div className={`rounded-2xl border p-6 ${darkMode ? 'bg-[#111625] border-slate-800/90 shadow-lg shadow-black/20' : 'bg-white border-slate-200 shadow-sm'} space-y-5 transition-all duration-300`}>
                     
-                    {/* Plain Static Styled Header */}
-                    <div className="flex items-center justify-between gap-3 border-b border-dashed pb-3 border-slate-200/50 dark:border-slate-800/60 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-4 bg-[#ff5000] rounded-sm" />
-                        <h2 className={`text-xs font-sans font-bold tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-700'} uppercase`}>
-                          ⌨️ Saisie des colisages par Couleur
-                        </h2>
+                    {/* Elegant Document Manifest look */}
+                    <div className="flex items-center justify-between border-b pb-4 border-dashed border-slate-200 dark:border-slate-800/80 flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-5 bg-gradient-to-b from-[#ff5000] to-orange-600 rounded-md" />
+                        <div>
+                          <h2 className={`text-xs font-bold font-mono tracking-wider ${darkMode ? 'text-slate-100' : 'text-slate-800'} uppercase`}>
+                            ⌨️ GRILLE DE SAISIE DE COLISAGE ET MULTI-COULEURS
+                          </h2>
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wide">
+                            Contrôle précis et édition matricielle des tailles, SKUs, poids et capacités
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-[10px] sm:text-[11px] font-sans font-semibold">
-                        <span className="text-xs">📋</span>
-                        <span>Astuce : Vous pouvez copier-coller des données directement depuis Excel (Ctrl+V) sur la grille !</span>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-[10px] font-sans font-bold">
+                        <span className="text-xs">⚡</span>
+                        <span>Support copier-coller Excel (Ctrl+V) actif sur la grille</span>
                       </div>
                     </div>
 
