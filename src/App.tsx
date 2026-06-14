@@ -276,6 +276,9 @@ export default function App() {
   // Modern global toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [sizesQuickRangeInput, setSizesQuickRangeInput] = useState<string>('');
+  const [repartTotalQty, setRepartTotalQty] = useState<string>('600');
+  const [repartMode, setRepartMode] = useState<'equal' | 'ratio' | 'bell'>('equal');
+  const [repartRatioPattern, setRepartRatioPattern] = useState<string>('1:2:2:2:1');
 
   const triggerToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -877,6 +880,106 @@ export default function App() {
     updateFilenameAndTotal(meta, nextColors);
     triggerToast(`Gamme "${trimmed.toUpperCase()}" générée avec succès (${newSizesList.length} tailles)`, 'success');
     setSizesQuickRangeInput('');
+  };
+
+  const handleApplyRepartition = () => {
+    if (!colors[activeColorIdx]) return;
+    const activeColor = colors[activeColorIdx];
+    const numSizes = activeColor.tailles.length;
+    if (numSizes === 0) {
+      alert("Veuillez d'abord ajouter ou générer des tailles !");
+      return;
+    }
+
+    const totalQty = parseInt(repartTotalQty, 10);
+    if (isNaN(totalQty) || totalQty <= 0) {
+      alert("Veuillez entrer une quantité totale de pièces valide.");
+      return;
+    }
+
+    let calculatedQtys: number[] = [];
+
+    if (repartMode === 'equal') {
+      const baseShare = Math.floor(totalQty / numSizes);
+      const remainder = totalQty % numSizes;
+      calculatedQtys = Array(numSizes).fill(baseShare);
+      for (let r = 0; r < remainder; r++) {
+        calculatedQtys[r % numSizes] += 1;
+      }
+    } else if (repartMode === 'ratio') {
+      const parts = repartRatioPattern.split(/[:\-\s]+/).map(p => parseInt(p, 10)).filter(num => !isNaN(num) && num > 0);
+      if (parts.length === 0) {
+        alert("Modèle de ratio invalide (ex: 1:2:2:2:1 ou 1-1-1).");
+        return;
+      }
+      
+      let ratiosToUse = [...parts];
+      if (ratiosToUse.length < numSizes) {
+        while (ratiosToUse.length < numSizes) {
+          ratiosToUse.push(1);
+        }
+      } else if (ratiosToUse.length > numSizes) {
+        ratiosToUse = ratiosToUse.slice(0, numSizes);
+      }
+
+      const ratioSum = ratiosToUse.reduce((sum, val) => sum + val, 0);
+      let distributedSum = 0;
+      calculatedQtys = ratiosToUse.map(rVal => {
+        const share = Math.floor((totalQty * rVal) / ratioSum);
+        distributedSum += share;
+        return share;
+      });
+
+      const residual = totalQty - distributedSum;
+      if (residual > 0) {
+        let maxIdx = ratiosToUse.indexOf(Math.max(...ratiosToUse));
+        if (maxIdx === -1) maxIdx = 0;
+        calculatedQtys[maxIdx] += residual;
+      }
+    } else if (repartMode === 'bell') {
+      const getBellWeight = (i: number, n: number) => {
+        const mean = (n - 1) / 2;
+        const stdDev = Math.max(0.6, n / 4);
+        return Math.exp(-0.5 * Math.pow((i - mean) / stdDev, 2));
+      };
+
+      const weights = Array.from({ length: numSizes }, (_, i) => getBellWeight(i, numSizes));
+      const weightsSum = weights.reduce((s, w) => s + w, 0);
+
+      let distributedSum = 0;
+      calculatedQtys = weights.map(w => {
+        const share = Math.floor((totalQty * w) / weightsSum);
+        distributedSum += share;
+        return share;
+      });
+
+      const residual = totalQty - distributedSum;
+      if (residual > 0) {
+        const midIdx = Math.floor(numSizes / 2);
+        calculatedQtys[midIdx] += residual;
+      }
+    }
+
+    const nextColors = colors.map((c, idx) => {
+      if (idx !== activeColorIdx) return c;
+      const nextSizes = { ...c.sizes };
+      c.tailles.forEach((sz, idxSizes) => {
+        nextSizes[sz] = {
+          ...nextSizes[sz],
+          qtyTot: calculatedQtys[idxSizes] || 0
+        };
+      });
+      return {
+        ...c,
+        sizes: nextSizes
+      };
+    });
+
+    setColors(nextColors);
+    setHasGenerated(false);
+    updateFilenameAndTotal(meta, nextColors);
+    const modeLabel = repartMode === 'equal' ? 'Égale' : repartMode === 'bell' ? 'En Cloche (Normal)' : `Ratio (${repartRatioPattern})`;
+    triggerToast(`🔢 Quantité de ${totalQty} pcs répartie (${modeLabel}) !`, 'success');
   };
 
   const handleSizeHeaderChange = (idx: number, newVal: string) => {
@@ -2959,6 +3062,66 @@ export default function App() {
                         className="px-2.5 py-1 bg-[#ff5000] hover:bg-[#ff5000]/90 text-white font-sans text-xs font-black rounded-lg cursor-pointer transition-all uppercase tracking-wide"
                       >
                         Générer
+                      </button>
+                    </div>
+
+                    <div className={`h-5 w-px mx-1.5 hidden xl:block ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
+
+                    {/* 🔥 3. ASSISTANT DE RÉPARTITION AUTOMATIQUE PAR RATIO/COURBE */}
+                    <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl border border-indigo-550/20 bg-indigo-500/5">
+                      <span className="flex items-center gap-1 pl-1 text-[11px] font-mono font-bold text-indigo-400" title="Répartir automatiquement une quantité totale de pièces sur toutes les tailles de la couleur active">
+                        🔢 Répartir :
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Qté Tot"
+                        value={repartTotalQty}
+                        onChange={(e) => setRepartTotalQty(e.target.value)}
+                        className={`w-16 px-1.5 py-1 text-xs font-mono font-bold rounded-lg border outline-none text-center transition-all ${
+                          darkMode 
+                            ? 'bg-[#151926] border-slate-800 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/15' 
+                            : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/15 hover:border-slate-400'
+                        }`}
+                        title="Entrez la quantité totale à répartir"
+                      />
+
+                      <select
+                        value={repartMode}
+                        onChange={(e) => setRepartMode(e.target.value as any)}
+                        className={`px-1 py-1 text-[11px] font-sans font-bold rounded-lg border outline-none cursor-pointer transition-all ${
+                          darkMode
+                            ? 'bg-[#151926] border-slate-800 text-slate-300 focus:border-indigo-550 focus:ring-1'
+                            : 'bg-white border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <option value="equal">📊 Égalitaire</option>
+                        <option value="ratio">🔢 Ratio personnalisé</option>
+                        <option value="bell">📈 Courbe en Cloche</option>
+                      </select>
+
+                      {repartMode === 'ratio' && (
+                        <input
+                          type="text"
+                          placeholder="ex: 1:2:2:1"
+                          value={repartRatioPattern}
+                          onChange={(e) => setRepartRatioPattern(e.target.value)}
+                          className={`w-20 px-1.5 py-1 text-xs font-mono font-bold rounded-lg border outline-none text-center transition-all ${
+                            darkMode 
+                              ? 'bg-[#151926] border-slate-800 text-white focus:border-indigo-550 focus:ring-1 focus:ring-indigo-550/15' 
+                              : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 hover:border-slate-400'
+                          }`}
+                          title="Entrez un ratio séparé par des double-points ou des tirets"
+                        />
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handleApplyRepartition}
+                        className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-sans text-xs font-black rounded-lg cursor-pointer transition-all uppercase tracking-wide"
+                        title="Lancer le calcul de répartition"
+                      >
+                        OK
                       </button>
                     </div>
 
