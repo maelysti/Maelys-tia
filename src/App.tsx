@@ -36,7 +36,8 @@ import {
   Scale,
   Truck,
   Plane,
-  Ship
+  Ship,
+  Zap
 } from 'lucide-react';
 
 import WelcomeScreen from './components/WelcomeScreen';
@@ -274,6 +275,7 @@ export default function App() {
 
   // Modern global toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [sizesQuickRangeInput, setSizesQuickRangeInput] = useState<string>('');
 
   const triggerToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -756,6 +758,125 @@ export default function App() {
     setColors(nextColors);
     setHasGenerated(false);
     updateFilenameAndTotal(meta, nextColors);
+  };
+
+  const generateSizeRange = (input: string): string[] | null => {
+    const parts = input.split(/\s*(?:-|TO|À|AU)\s*/i);
+    if (parts.length !== 2) return null;
+    const start = parts[0].trim();
+    const end = parts[1].trim();
+    
+    const startUpper = start.toUpperCase();
+    const endUpper = end.toUpperCase();
+
+    // Case 1: Numeric Range (e.g., 1-6 or 36-46)
+    const startNum = parseInt(start, 10);
+    const endNum = parseInt(end, 10);
+    if (!isNaN(startNum) && !isNaN(endNum) && String(startNum) === start && String(endNum) === end) {
+      if (startNum < endNum) {
+        const step = (startNum % 2 === 0 && endNum % 2 === 0) ? 2 : 1;
+        const result: string[] = [];
+        for (let i = startNum; i <= endNum; i += step) {
+          result.push(String(i));
+        }
+        return result;
+      }
+    }
+
+    // Case 2: Apparel Range (XS - 2XL)
+    const APPAREL_SEQUENCE = [
+      "YXS", "YS", "YM", "YL", "YXL",
+      "3XS", "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "7XL", "8XL", "9XL", "10XL"
+    ];
+    
+    const normalizeSize = (s: string) => {
+      let n = s.toUpperCase();
+      if (n === '2XS') return 'XXS';
+      if (n === '2XL') return 'XXL';
+      if (n === '3XL') return 'XXXL';
+      return n;
+    };
+
+    const normStart = normalizeSize(start);
+    const normEnd = normalizeSize(end);
+
+    const idxStart = APPAREL_SEQUENCE.indexOf(normStart);
+    const idxEnd = APPAREL_SEQUENCE.indexOf(normEnd);
+
+    if (idxStart !== -1 && idxEnd !== -1 && idxStart < idxEnd) {
+      const slice = APPAREL_SEQUENCE.slice(idxStart, idxEnd + 1);
+      return slice.map((s) => {
+        if (s === 'XXS' && (startUpper === '2XS' || endUpper === '2XS')) return '2XS';
+        if (s === 'XXL' && (startUpper === '2XL' || endUpper === '2XL')) return '2XL';
+        if (s === 'XXXL' && (startUpper === '3XL' || endUpper === '3XL')) return '3XL';
+        return s;
+      });
+    }
+
+    // Case 3: Letter Range (e.g., A-F)
+    if (start.length === 1 && end.length === 1) {
+      const codeStart = startUpper.charCodeAt(0);
+      const codeEnd = endUpper.charCodeAt(0);
+      if (codeStart >= 65 && codeStart <= 90 && codeEnd >= 65 && codeEnd <= 90 && codeStart < codeEnd) {
+        const result: string[] = [];
+        for (let c = codeStart; c <= codeEnd; c++) {
+          result.push(String.fromCharCode(c));
+        }
+        return result;
+      }
+    }
+
+    return null;
+  };
+
+  const handleApplySizesQuickRange = (rangeText: string) => {
+    const trimmed = rangeText.trim();
+    if (!trimmed) return;
+
+    const newSizesList = generateSizeRange(trimmed);
+    if (!newSizesList || newSizesList.length === 0) {
+      alert("Format de range de tailles invalide.\nExemples :\n• XS - 2XL (XS, S, M, L, XL, 2XL)\n• 1 - 6 (1, 2, 3, 4, 5, 6)\n• 36 - 46 (36, 38, 40, 42, 44, 46)\n• A - F (A, B, C, D, E, F)");
+      return;
+    }
+
+    const nextColors = colors.map((c) => {
+      const nextSizes: { [sizeName: string]: SizeDetails } = {};
+      
+      newSizesList.forEach((sz) => {
+        if (c.sizes[sz]) {
+          nextSizes[sz] = { ...c.sizes[sz] };
+        } else {
+          const refSizeKey = c.tailles[0];
+          const refSize = refSizeKey ? c.sizes[refSizeKey] : null;
+          
+          nextSizes[sz] = refSize 
+            ? { ...refSize, qtyTot: 0, sku: '' } 
+            : {
+                qtyTot: 0,
+                cap: 25,
+                wPiece: 0.25,
+                wCarton: 0.80,
+                cbmUnit: (61 * 41 * 30) / 1000000,
+                dimL: 61,
+                diml: 41,
+                dimH: 30,
+                sku: ''
+              };
+        }
+      });
+
+      return {
+        ...c,
+        tailles: newSizesList,
+        sizes: nextSizes
+      };
+    });
+
+    setColors(nextColors);
+    setHasGenerated(false);
+    updateFilenameAndTotal(meta, nextColors);
+    triggerToast(`Gamme "${trimmed.toUpperCase()}" générée avec succès (${newSizesList.length} tailles)`, 'success');
+    setSizesQuickRangeInput('');
   };
 
   const handleSizeHeaderChange = (idx: number, newVal: string) => {
@@ -2806,6 +2927,40 @@ export default function App() {
                     >
                       ⚙️ Global
                     </button>
+
+                    <div className={`h-5 w-px mx-1.5 hidden lg:block ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
+
+                    {/* 🔥 2. ACCELERATEUR DE SÉLECTION DE GAMME RAPIDE DE TAILLES */}
+                    <div className="flex flex-wrap items-center gap-2 p-1 rounded-xl border border-[#ff5000]/20 bg-[#ff5000]/5">
+                      <span className="flex items-center gap-1 pl-1 text-[11px] font-mono font-bold text-slate-400">
+                        <Zap className="w-3.5 h-3.5 text-[#ff5000] animate-pulse" />
+                        Gamme :
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="ex: XS - 2XL ou 1-6"
+                        value={sizesQuickRangeInput}
+                        onChange={(e) => setSizesQuickRangeInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleApplySizesQuickRange(sizesQuickRangeInput);
+                          }
+                        }}
+                        className={`w-32 px-2 py-1 text-xs font-mono font-bold rounded-lg border outline-none text-center transition-all ${
+                          darkMode 
+                            ? 'bg-[#151926] border-slate-800 text-white focus:border-[#ff5000] focus:ring-1 focus:ring-[#ff5000]/15' 
+                            : 'bg-white border-slate-300 text-slate-800 focus:border-[#ff5000] focus:ring-1 focus:ring-[#ff5000]/15 hover:border-slate-400'
+                        }`}
+                        title="Entrez par ex. XS - 2XL, 1 - 6, 36 - 46 ou A - F puis pressez Entrée"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplySizesQuickRange(sizesQuickRangeInput)}
+                        className="px-2.5 py-1 bg-[#ff5000] hover:bg-[#ff5000]/90 text-white font-sans text-xs font-black rounded-lg cursor-pointer transition-all uppercase tracking-wide"
+                      >
+                        Générer
+                      </button>
+                    </div>
 
                     <div className={`h-5 w-px mx-1.5 hidden sm:block ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`} />
 
