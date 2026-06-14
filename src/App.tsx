@@ -37,7 +37,9 @@ import {
   Truck,
   Plane,
   Ship,
-  Zap
+  Zap,
+  Tag,
+  Printer
 } from 'lucide-react';
 
 import WelcomeScreen from './components/WelcomeScreen';
@@ -253,6 +255,10 @@ export default function App() {
 
   // Calculations Results display
   const [results, setResults] = useState<ColorResult[]>([]);
+  const [packingListSubTab, setPackingListSubTab] = useState<'table' | 'labels_gs1'>('table');
+  const [selectedLabelCarton, setSelectedLabelCarton] = useState<number>(1);
+  const [ssccCompanyPrefix, setSsccCompanyPrefix] = useState<string>('3370001');
+  const [gs1BarcodeType, setGs1BarcodeType] = useState<'standard' | 'minimal'>('standard');
   const [selectedExportColors, setSelectedExportColors] = useState<string[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [sqlStatus, setSqlStatus] = useState<string | null>(null);
@@ -980,6 +986,265 @@ export default function App() {
     updateFilenameAndTotal(meta, nextColors);
     const modeLabel = repartMode === 'equal' ? 'Égale' : repartMode === 'bell' ? 'En Cloche (Normal)' : `Ratio (${repartRatioPattern})`;
     triggerToast(`🔢 Quantité de ${totalQty} pcs répartie (${modeLabel}) !`, 'success');
+  };
+
+  const handleAutoFixSKUs = () => {
+    let fixCount = 0;
+    const nextColors = colors.map(c => {
+      const nextSizes = { ...c.sizes };
+      c.tailles.forEach(sz => {
+        if (!nextSizes[sz].sku || nextSizes[sz].sku.trim() === '') {
+          const stylePart = meta.styleNumber || meta.style || 'SKU';
+          const colorPart = c.nom.toUpperCase().replace(/\s+/g, '');
+          const sizePart = sz.toUpperCase();
+          nextSizes[sz] = {
+            ...nextSizes[sz],
+            sku: `${stylePart}-${colorPart}-${sizePart}`.toUpperCase().substring(0, 20)
+          };
+          fixCount++;
+        }
+      });
+      return { ...c, sizes: nextSizes };
+    });
+    if (fixCount === 0) {
+      triggerToast("Tous les articles ont déjà un SKU !", "info");
+      return;
+    }
+    setColors(nextColors);
+    updateFilenameAndTotal(meta, nextColors);
+    triggerToast(`⚡ ${fixCount} SKUs manquants auto-générés !`, 'success');
+  };
+
+  const handleAutoFixSpecs = () => {
+    let fixCount = 0;
+    const nextColors = colors.map(c => {
+      const nextSizes = { ...c.sizes };
+      // Find a reference size that has non-zero specs
+      let refSpec = {
+        wPiece: 0.25,
+        wCarton: 0.8,
+        cbmUnit: 0.075,
+        dimL: 61,
+        diml: 41,
+        dimH: 30,
+        cap: 25
+      };
+
+      for (const sz of c.tailles) {
+        const s = c.sizes[sz];
+        if (s && s.wPiece > 0 && s.wCarton > 0 && s.dimL > 0) {
+          refSpec = {
+            wPiece: s.wPiece,
+            wCarton: s.wCarton,
+            cbmUnit: s.cbmUnit,
+            dimL: s.dimL,
+            diml: s.diml,
+            dimH: s.dimH,
+            cap: s.cap
+          };
+          break;
+        }
+      }
+
+      c.tailles.forEach(sz => {
+        const s = nextSizes[sz];
+        if (!s || (s.wPiece || 0) === 0 || (s.wCarton || 0) === 0 || (s.dimL || 0) === 0) {
+          nextSizes[sz] = {
+            ...s,
+            wPiece: refSpec.wPiece,
+            wCarton: refSpec.wCarton,
+            cbmUnit: refSpec.cbmUnit,
+            dimL: refSpec.dimL,
+            diml: refSpec.diml,
+            dimH: refSpec.dimH,
+            cap: refSpec.cap,
+            qtyTot: s?.qtyTot || 0,
+            sku: s?.sku || ''
+          };
+          fixCount++;
+        }
+      });
+
+      return { ...c, sizes: nextSizes };
+    });
+    if (fixCount === 0) {
+      triggerToast("Toutes les spécifications sont déjà renseignées !", "info");
+      return;
+    }
+    setColors(nextColors);
+    updateFilenameAndTotal(meta, nextColors);
+    triggerToast(`📐 ${fixCount} fiches dimensions/poids manquantes réparées !`, 'success');
+  };
+
+  const handleScaleQuantitiesToTarget = () => {
+    const targetQty = Number(meta.qty?.replace(/\s/g, '')) || 0;
+    if (targetQty <= 0) {
+      triggerToast("Veuillez définir une quantité cible dans les Références !", "error");
+      return;
+    }
+    if (grandTotals.p <= 0) {
+      triggerToast("Veuillez saisir au moins quelques cartons/pièces à ajuster !", "error");
+      return;
+    }
+
+    const ratio = targetQty / grandTotals.p;
+    let distributedSum = 0;
+
+    const nextColors = colors.map(c => {
+      const nextSizes = { ...c.sizes };
+      c.tailles.forEach(sz => {
+        const s = nextSizes[sz];
+        if (s && s.qtyTot > 0) {
+          const newQty = Math.round(s.qtyTot * ratio);
+          nextSizes[sz] = {
+            ...s,
+            qtyTot: newQty
+          };
+          distributedSum += newQty;
+        }
+      });
+      return { ...c, sizes: nextSizes };
+    });
+
+    const residual = targetQty - distributedSum;
+    if (residual !== 0) {
+      let maxQty = -1;
+      let targetColorIdx = 0;
+      let targetSizeName = '';
+
+      nextColors.forEach((c, ci) => {
+        c.tailles.forEach(sz => {
+          const originalValue = colors[ci].sizes[sz]?.qtyTot || 0;
+          if (originalValue > maxQty) {
+            maxQty = originalValue;
+            targetColorIdx = ci;
+            targetSizeName = sz;
+          }
+        });
+      });
+
+      if (targetSizeName) {
+        nextColors[targetColorIdx].sizes[targetSizeName] = {
+          ...nextColors[targetColorIdx].sizes[targetSizeName],
+          qtyTot: Math.max(0, (nextColors[targetColorIdx].sizes[targetSizeName].qtyTot || 0) + residual)
+        };
+      }
+    }
+
+    setColors(nextColors);
+    updateFilenameAndTotal(meta, nextColors);
+    setHasGenerated(false);
+    triggerToast(`⚖️ Quantités ajustées proportionnellement pour atteindre précisément la cible de ${targetQty} Pcs !`, 'success');
+  };
+
+  const generateSSCC18 = (cartonNo: number) => {
+    const ext = "3";
+    const prefix = ssccCompanyPrefix.trim() || '3370001';
+    const serialLen = 17 - 1 - prefix.length;
+    const serialString = String(cartonNo).padStart(serialLen, '0');
+    const ssccBase = ext + prefix + serialString;
+    
+    let sum = 0;
+    for (let i = 0; i < ssccBase.length; i++) {
+      const digit = parseInt(ssccBase[i], 10);
+      sum += (i % 2 === 0) ? digit * 3 : digit;
+    }
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return `${ssccBase}${checkDigit}`;
+  };
+
+  const resolveCartonData = (cartonNo: number) => {
+    let currentSeq = 1;
+    for (const res of activeResults) {
+      for (const row of res.rows) {
+        const start = currentSeq;
+        const end = currentSeq + row.nbr - 1;
+        if (cartonNo >= start && cartonNo <= end) {
+          const origColor = colors.find(c => c.nom === res.nom);
+          let firstActiveSize = Object.keys(row.sizes).find(sz => (row.sizes[sz] || 0) > 0) || '';
+          let sizeSpecDef = origColor?.sizes[firstActiveSize];
+          
+          const dims = {
+            L: sizeSpecDef?.dimL || 61,
+            l: sizeSpecDef?.diml || 41,
+            h: sizeSpecDef?.dimH || 30,
+          };
+          
+          const singleSizes: { [sizeName: string]: number } = {};
+          Object.keys(row.sizes).forEach(sz => {
+            if ((row.sizes[sz] || 0) > 0) {
+              singleSizes[sz] = row.sizes[sz];
+            }
+          });
+          
+          const netWeight = row.netWeightRow / row.nbr;
+          const grossWeight = row.grossWeightRow / row.nbr;
+          const volume = row.cbmRow / row.nbr;
+          
+          return {
+            cartonNumber: cartonNo,
+            totalCartons: grandTotals.c,
+            colorName: res.nom,
+            colorHex: res.color,
+            sizes: singleSizes,
+            pcsPerCarton: row.pcsPerCarton,
+            skus: row.skus,
+            netWeight,
+            grossWeight,
+            volume,
+            dimensions: dims,
+            type: row.type,
+            style: meta.style || '—',
+            styleNumber: meta.styleNumber || '',
+            order: meta.order || '—',
+            po: meta.po || '—',
+            refClient: meta.refClient || '—',
+            customer: meta.customer || '—',
+            destination: meta.destination || '—',
+            address: meta.address || '',
+            pays: meta.pays || '',
+            composition: meta.composition || '',
+            yarn: meta.yarn || '',
+            invoice: meta.invoice || '—'
+          };
+        }
+        currentSeq += row.nbr;
+      }
+    }
+    return null;
+  };
+
+  const renderCSSBarcode = (value: string) => {
+    const combined = value + "GS1-128-SSCC";
+    let hashVal = 0;
+    for (let i = 0; i < combined.length; i++) {
+      hashVal = (hashVal << 5) - hashVal + combined.charCodeAt(i);
+      hashVal |= 0;
+    }
+    
+    const bars = [];
+    let isBlack = true;
+    for (let i = 0; i < 54; i++) {
+      const pseudoRand = Math.abs(Math.sin(hashVal + i) * 10);
+      const width = (pseudoRand < 3) ? 1.2 : (pseudoRand < 6) ? 2.4 : (pseudoRand < 8.5) ? 3.6 : 4.8;
+      bars.push(
+        <div 
+          key={i} 
+          style={{
+            width: `${width}px`,
+            backgroundColor: isBlack ? '#000' : 'transparent',
+            height: '100%'
+          }} 
+        />
+      );
+      isBlack = !isBlack;
+    }
+    
+    return (
+      <div className="h-16 flex items-stretch justify-center bg-white px-2 py-1 select-none overflow-hidden max-w-full mx-auto">
+        {bars}
+      </div>
+    );
   };
 
   const handleSizeHeaderChange = (idx: number, newVal: string) => {
@@ -4514,13 +4779,25 @@ export default function App() {
                                       {isQtyMatch ? (
                                         <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                                       ) : (
-                                        <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                                        <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0 animate-pulse" />
                                       )}
                                       <div className="flex-1">
-                                        <span className={`font-semibold ${isQtyMatch ? 'text-slate-300' : 'text-rose-400'}`}>
-                                          Quantité de commande vs Validée
-                                        </span>
-                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={`font-semibold ${isQtyMatch ? 'text-slate-300' : 'text-rose-450'}`}>
+                                            Quantité de commande vs Validée
+                                          </span>
+                                          {!isQtyMatch && targetQty > 0 && grandTotals.p > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={handleScaleQuantitiesToTarget}
+                                              className="px-2 py-0.5 bg-rose-550/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/25 rounded text-[9px] font-mono font-bold transition-all uppercase cursor-pointer flex items-center gap-1"
+                                              title="Ajuste proportionnellement toutes les tailles pour que la somme réélle atteigne exactement la cible"
+                                            >
+                                              ⚖️ Auto-Ajuster
+                                            </button>
+                                          )}
+                                        </div>
+                                        <span className="block text-[11px] text-slate-400 mt-0.5 font-sans">
                                           {targetQty === 0 
                                             ? "Aucune quantité cible spécifiée dans l'en-tête." 
                                             : isQtyMatch 
@@ -4570,13 +4847,25 @@ export default function App() {
                                       {missingSKUCount === 0 ? (
                                         <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                                       ) : (
-                                        <AlertTriangle className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                                        <AlertTriangle className="w-4 h-4 text-[#ff5000] mt-0.5 shrink-0 animate-pulse" />
                                       )}
                                       <div className="flex-1">
-                                        <span className={`font-semibold ${missingSKUCount === 0 ? 'text-slate-300' : 'text-indigo-400'}`}>
-                                          Vérification des codes SKU
-                                        </span>
-                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={`font-semibold ${missingSKUCount === 0 ? 'text-slate-300' : 'text-amber-500'}`}>
+                                            Vérification des codes SKU
+                                          </span>
+                                          {missingSKUCount > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={handleAutoFixSKUs}
+                                              className="px-2 py-0.5 bg-[#ff5000]/10 hover:bg-[#ff5000] text-[#ff5000] hover:text-white border border-[#ff5000]/25 rounded text-[9px] font-mono font-bold transition-all uppercase cursor-pointer flex items-center gap-1"
+                                              title="Auto-générer les codes SKU manquants (ex: STYLE-COLOR-SIZE)"
+                                            >
+                                              ⚡ Corriger ({missingSKUCount})
+                                            </button>
+                                          )}
+                                        </div>
+                                        <span className="block text-[11px] text-slate-400 mt-0.5 font-sans">
                                           {missingSKUCount === 0 
                                             ? "Tous les articles packés contiennent un code SKU valide." 
                                             : `${missingSKUCount} variante(s) de taille manque(nt) de code SKU. Risque d'erreur d'inventaire.`
@@ -4590,16 +4879,28 @@ export default function App() {
                                       {zeroSpecsCount === 0 ? (
                                         <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                                       ) : (
-                                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                        <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0 animate-pulse" />
                                       )}
                                       <div className="flex-1">
-                                        <span className={`font-semibold ${zeroSpecsCount === 0 ? 'text-slate-300' : 'text-amber-500'}`}>
-                                          Fiche technique & Dimensions
-                                        </span>
-                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className={`font-semibold ${zeroSpecsCount === 0 ? 'text-slate-300' : 'text-rose-400'}`}>
+                                            Fiche technique & Dimensions
+                                          </span>
+                                          {zeroSpecsCount > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={handleAutoFixSpecs}
+                                              className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/25 rounded text-[9px] font-mono font-bold transition-all uppercase cursor-pointer flex items-center gap-1"
+                                              title="Remplir automatiquement les tailles à 0 à partir d'une taille existante ou des dimensions standard"
+                                            >
+                                              🔧 Réparer ({zeroSpecsCount})
+                                            </button>
+                                          )}
+                                        </div>
+                                        <span className="block text-[11px] text-slate-400 mt-0.5 font-sans">
                                           {zeroSpecsCount === 0 
                                             ? "Les dimensions de cartons et poids unitaires de toutes les tailles sont renseignés." 
-                                            : `${zeroSpecsCount} tailles possèdent des coefficients de dimensions ou de poids à zéro.`
+                                            : `${zeroSpecsCount} tailles possèdent des coefficients de dimensions ou de poids à zéro. Les calculs de m³ et de kg sont incomplets.`
                                           }
                                         </span>
                                       </div>
