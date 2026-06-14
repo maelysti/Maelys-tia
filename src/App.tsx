@@ -28,7 +28,15 @@ import {
   Save,
   History,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  CheckCircle2,
+  Coins,
+  Leaf,
+  Globe,
+  Scale,
+  Truck,
+  Plane,
+  Ship
 } from 'lucide-react';
 
 import WelcomeScreen from './components/WelcomeScreen';
@@ -253,6 +261,16 @@ export default function App() {
   const [isSmartImportOpen, setIsSmartImportOpen] = useState<boolean>(false);
   const [smartImportRawText, setSmartImportRawText] = useState<string>('');
   const [palletType, setPalletType] = useState<'EUR' | 'US'>('EUR');
+
+  // Option 1: Diagnostic threshold for safe warehouse box handling weight
+  const [safetyWeightLimit, setSafetyWeightLimit] = useState<number>(15);
+
+  // Option 4: Freight rate estimations & Carbon offset calculations states
+  const [seaRate, setSeaRate] = useState<number>(115);
+  const [airRate, setAirRate] = useState<number>(4.2);
+  const [roadRate, setRoadRate] = useState<number>(38);
+  const [freightDistance, setFreightDistance] = useState<number>(6500);
+  const [currency, setCurrency] = useState<'€' | '$'>('€');
 
   // Modern global toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -3970,6 +3988,397 @@ export default function App() {
                             </div>
                           </div>
 
+                        </div>
+
+                        {/* ⚡ AMÉLIORATIONS SÉLECTIONNÉES : 1. CODE DIAGNOSTIC DE CONFORMITÉ & 4. SIMULATEUR DE FRET/CO2 */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6 font-sans">
+                          {/* 🔍 OPTION 1 : DIAGNOSTIC DE CONFORMITÉ, DE SÉCURITÉ & DE COHÉRENCE */}
+                          {(() => {
+                            const targetQty = Number(meta.qty?.replace(/\s/g, '')) || 0;
+                            const qtyDiff = grandTotals.p - targetQty;
+                            const isQtyMatch = targetQty === 0 || qtyDiff === 0;
+
+                            // Calculate overweight cartons based on safety limit threshold
+                            let overweightCartonsCount = 0;
+                            let maxWeightSeen = 0;
+                            const overweightDetailsList: string[] = [];
+
+                            activeResults.forEach(res => {
+                              res.rows.forEach(row => {
+                                const rowCtnWeight = row.grossWeightRow / row.nbr; // weight per carton
+                                if (rowCtnWeight > maxWeightSeen) maxWeightSeen = rowCtnWeight;
+                                if (rowCtnWeight > safetyWeightLimit) {
+                                  overweightCartonsCount += row.nbr;
+                                  overweightDetailsList.push(`${row.nbr} ctn ${res.nom} (${rowCtnWeight.toFixed(1)} kg/ctn)`);
+                                }
+                              });
+                            });
+
+                            // Check for empty SKUs
+                            let missingSKUCount = 0;
+                            activeResults.forEach((res, ci) => {
+                              const origIdx = res.colorIndex ?? ci;
+                              res.tailles.forEach(t => {
+                                const sizeInfo = colors[origIdx]?.sizes[t];
+                                if (sizeInfo && sizeInfo.qtyTot > 0 && !sizeInfo.sku) {
+                                  missingSKUCount++;
+                                }
+                              });
+                            });
+
+                            // Check for invalid specs
+                            let zeroSpecsCount = 0;
+                            activeResults.forEach((res, ci) => {
+                              const origIdx = res.colorIndex ?? ci;
+                              res.tailles.forEach(t => {
+                                const sizeInfo = colors[origIdx]?.sizes[t];
+                                if (sizeInfo && sizeInfo.qtyTot > 0) {
+                                  if ((sizeInfo.wPiece || 0) === 0 || (sizeInfo.wCarton || 0) === 0 || (sizeInfo.cbmUnit || 0) === 0) {
+                                    zeroSpecsCount++;
+                                  }
+                                }
+                              });
+                            });
+
+                            const hasAlerts = !isQtyMatch || overweightCartonsCount > 0 || missingSKUCount > 0 || zeroSpecsCount > 0;
+
+                            return (
+                              <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-[#151926] border-slate-800' : 'bg-white border-slate-200'} shadow-md flex flex-col justify-between space-y-4`}>
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+                                    <div className="flex items-center gap-2">
+                                      <Scale className="w-5 h-5 text-amber-500 animate-pulse" />
+                                      <h3 className={`text-xs font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                                        🔍 Option 1 : Diagnostic & Alertes Sécurité
+                                      </h3>
+                                    </div>
+                                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-black uppercase tracking-wider ${
+                                      !hasAlerts 
+                                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' 
+                                        : 'bg-amber-500/15 text-amber-500 border border-amber-500/20'
+                                    }`}>
+                                      {!hasAlerts ? '✓ Conforme' : '⚠️ Attention'}
+                                    </span>
+                                  </div>
+
+                                  <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed`}>
+                                    Ce module de vérification inspecte continuellement la cohérence de vos données de colisage par rapport à l'ordre d'expédition et évalue les normes de manutention physique des boîtes.
+                                  </p>
+
+                                  {/* Safe weight limit slider */}
+                                  <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-1.5">
+                                    <div className="flex items-center justify-between text-xs font-mono">
+                                      <span className="text-slate-400 font-bold flex items-center gap-1">
+                                        <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                                        Seuil Poids de Manutention :
+                                      </span>
+                                      <span className="text-amber-400 font-bold">{safetyWeightLimit} kg / Carton</span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="8"
+                                      max="25"
+                                      step="1"
+                                      value={safetyWeightLimit}
+                                      onChange={(e) => setSafetyWeightLimit(Number(e.target.value))}
+                                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                                    />
+                                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                                      <span>8 kg (Léger)</span>
+                                      <span>15 kg (Recommandé)</span>
+                                      <span>25 kg (Maximum)</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Diagnostic list items */}
+                                  <div className="space-y-2.5 pt-2">
+                                    {/* 1. Target Qty discrepancy */}
+                                    <div className="flex items-start gap-2.5 text-xs font-mono">
+                                      {isQtyMatch ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                                      )}
+                                      <div className="flex-1">
+                                        <span className={`font-semibold ${isQtyMatch ? 'text-slate-300' : 'text-rose-400'}`}>
+                                          Quantité de commande vs Validée
+                                        </span>
+                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                          {targetQty === 0 
+                                            ? "Aucune quantité cible spécifiée dans l'en-tête." 
+                                            : isQtyMatch 
+                                              ? `Correspondance parfaite à ${grandTotals.p} Pcs.` 
+                                              : `Écart de ${Math.abs(qtyDiff)} Pcs (Cible: ${targetQty} Pcs / Packé: ${grandTotals.p} Pcs)`
+                                          }
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 2. Overweight cartons */}
+                                    <div className="flex items-start gap-2.5 text-xs font-mono">
+                                      {overweightCartonsCount === 0 ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                                      )}
+                                      <div className="flex-1">
+                                        <span className={`font-semibold ${overweightCartonsCount === 0 ? 'text-slate-300' : 'text-amber-405'}`}>
+                                          Limites ergonomiques de poids
+                                        </span>
+                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                          {overweightCartonsCount === 0 
+                                            ? `Tous les cartons respectent la limite de sécurité humaine (${safetyWeightLimit} kg).` 
+                                            : `${overweightCartonsCount} carton(s) dépasse(nt) le seuil sécurisé (${safetyWeightLimit} kg). Danger de fatigue physique lors de la manutention.`
+                                          }
+                                        </span>
+                                        {overweightDetailsList.length > 0 && (
+                                          <div className="flex flex-wrap gap-1 mt-1.5">
+                                            {overweightDetailsList.slice(0, 3).map((det, di) => (
+                                              <span key={di} className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/15">
+                                                {det}
+                                              </span>
+                                            ))}
+                                            {overweightDetailsList.length > 3 && (
+                                              <span className="text-[9.5px] text-slate-500 self-center font-bold">
+                                                +{overweightDetailsList.length - 3} autres
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* 3. Missing SKUs */}
+                                    <div className="flex items-start gap-2.5 text-xs font-mono">
+                                      {missingSKUCount === 0 ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                                      )}
+                                      <div className="flex-1">
+                                        <span className={`font-semibold ${missingSKUCount === 0 ? 'text-slate-300' : 'text-indigo-400'}`}>
+                                          Vérification des codes SKU
+                                        </span>
+                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                          {missingSKUCount === 0 
+                                            ? "Tous les articles packés contiennent un code SKU valide." 
+                                            : `${missingSKUCount} variante(s) de taille manque(nt) de code SKU. Risque d'erreur d'inventaire.`
+                                          }
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* 4. Complete dimensions and weights details */}
+                                    <div className="flex items-start gap-2.5 text-xs font-mono">
+                                      {zeroSpecsCount === 0 ? (
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                                      ) : (
+                                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                      )}
+                                      <div className="flex-1">
+                                        <span className={`font-semibold ${zeroSpecsCount === 0 ? 'text-slate-300' : 'text-amber-500'}`}>
+                                          Fiche technique & Dimensions
+                                        </span>
+                                        <span className="block text-[11px] text-slate-500 mt-0.5 font-sans">
+                                          {zeroSpecsCount === 0 
+                                            ? "Les dimensions de cartons et poids unitaires de toutes les tailles sont renseignés." 
+                                            : `${zeroSpecsCount} tailles possèdent des coefficients de dimensions ou de poids à zéro.`
+                                          }
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="text-[10px] text-slate-500 font-mono text-right pt-2.5 border-t border-slate-800/40">
+                                  Poids unitaire Max détecté : <span className="text-slate-300 font-bold">{maxWeightSeen.toFixed(2)} kg</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* 💰 OPTION 4 : ESTIMATEUR FINANCIER & ANALYSE CARBONE DE FRET */}
+                          {(() => {
+                            // Calculate Freight Prices
+                            const seaCalculatedTotal = grandTotals.v * seaRate;
+                            const airCalculatedTotal = grandTotals.g * airRate;
+                            const roadCalculatedTotal = grandTotals.v * roadRate;
+
+                            // Calculate CO2 emissions
+                            // Formula: Tons * Distance * transportIntensityFactor (kg CO2 / ton-km)
+                            // Sea: 0.040 kg / t-km
+                            // Air: 0.500 kg / t-km
+                            // Road: 0.100 kg / t-km
+                            const totalTons = grandTotals.g / 1000;
+                            const seaCO2 = totalTons * freightDistance * 0.040;
+                            const airCO2 = totalTons * freightDistance * 0.500;
+                            const roadCO2 = totalTons * freightDistance * 0.100;
+
+                            return (
+                              <div className={`p-5 rounded-2xl border ${darkMode ? 'bg-[#151926] border-slate-800' : 'bg-white border-slate-200'} shadow-md flex flex-col justify-between space-y-4`}>
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+                                    <div className="flex items-center gap-2">
+                                      <Coins className="w-5 h-5 text-indigo-400 animate-pulse" />
+                                      <h3 className={`text-xs font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                                        💰 Option 4 : Coût Fret & Bilan Carbone
+                                      </h3>
+                                    </div>
+                                    {/* Currency Switcher selector */}
+                                    <div className="flex items-center gap-1 bg-[#1a1f2e] border border-slate-700/60 p-0.5 rounded-md">
+                                      <button
+                                        type="button"
+                                        onClick={() => setCurrency('€')}
+                                        className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                                          currency === '€' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-white'
+                                        }`}
+                                      >
+                                        EUR (€)
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setCurrency('$')}
+                                        className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                                          currency === '$' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-white'
+                                        }`}
+                                      >
+                                        USD ($)
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-600'} leading-relaxed`}>
+                                    Estimez instantanément les frais logistiques internationaux et l'impact de Gaz à Effet de Serre (GES CO2) associés à votre cargaison pour les différents modes de transit.
+                                  </p>
+
+                                  {/* Distance Slider container */}
+                                  <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-1.5">
+                                    <div className="flex items-center justify-between text-xs font-mono">
+                                      <span className="text-slate-400 font-bold flex items-center gap-1">
+                                        <Globe className="w-3.5 h-3.5 text-slate-500" />
+                                        Distance estimée du trajet :
+                                      </span>
+                                      <span className="text-indigo-400 font-bold">{freightDistance.toLocaleString('fr-FR')} km</span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="200"
+                                      max="18000"
+                                      step="100"
+                                      value={freightDistance}
+                                      onChange={(e) => setFreightDistance(Number(e.target.value))}
+                                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                    <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                                      <span>200 km</span>
+                                      <span>6 500 km</span>
+                                      <span>18 000 km</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Interactive Rates inputs block */}
+                                  <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+                                    <div className="p-2 border border-slate-800 rounded-lg bg-slate-900/40 text-center">
+                                      <span className="text-slate-500 text-[9px] uppercase font-bold block mb-1">Fret Mer (CBM)</span>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          value={seaRate}
+                                          onChange={(e) => setSeaRate(Math.max(0, Number(e.target.value)))}
+                                          className={`w-12 bg-transparent text-center font-bold focus:outline-none transition-all rounded p-0.5 text-xs ${
+                                            darkMode ? 'text-slate-200' : 'text-slate-800'
+                                          }`}
+                                        />
+                                        <span className="text-slate-400 text-[10px]">{currency}</span>
+                                      </div>
+                                    </div>
+                                    <div className="p-2 border border-slate-800 rounded-lg bg-slate-900/40 text-center">
+                                      <span className="text-slate-500 text-[9px] uppercase font-bold block mb-1">Fret Air (KG)</span>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.1"
+                                          value={airRate}
+                                          onChange={(e) => setAirRate(Math.max(0, Number(e.target.value)))}
+                                          className={`w-12 bg-transparent text-center font-bold focus:outline-none transition-all rounded p-0.5 text-xs ${
+                                            darkMode ? 'text-slate-200' : 'text-slate-800'
+                                          }`}
+                                        />
+                                        <span className="text-slate-400 text-[10px]">{currency}</span>
+                                      </div>
+                                    </div>
+                                    <div className="p-2 border border-slate-800 rounded-lg bg-slate-900/40 text-center">
+                                      <span className="text-slate-500 text-[9px] uppercase font-bold block mb-1">Fret Route (CBM)</span>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <input
+                                          type="number"
+                                          value={roadRate}
+                                          onChange={(e) => setRoadRate(Math.max(0, Number(e.target.value)))}
+                                          className={`w-12 bg-transparent text-center font-bold focus:outline-none transition-all rounded p-0.5 text-xs ${
+                                            darkMode ? 'text-slate-200' : 'text-slate-800'
+                                          }`}
+                                        />
+                                        <span className="text-slate-400 text-[10px]">{currency}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Transit modes details matrix */}
+                                  <div className="grid grid-cols-3 gap-2 pt-1 text-[11px] font-mono">
+                                    <div className="p-2 rounded-lg border border-slate-800 bg-[#34495e]/5 text-center flex flex-col justify-between h-20">
+                                      <div className="flex items-center justify-center gap-1 text-slate-450 font-bold mb-1">
+                                        <Ship className="w-3.5 h-3.5 text-blue-400" />
+                                        <span>Mer</span>
+                                      </div>
+                                      <div className="mt-auto space-y-0.5">
+                                        <div className="text-[12px] font-black text-slate-200">
+                                          {seaCalculatedTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} {currency}
+                                        </div>
+                                        <div className="text-[9px] text-emerald-400 font-bold flex items-center justify-center gap-0.5">
+                                          <Leaf className="w-2.5 h-2.5 shrink-0 text-emerald-400" />
+                                          <span>{seaCO2.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} kg</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-2 rounded-lg border border-slate-800 bg-[#34495e]/5 text-center flex flex-col justify-between h-20">
+                                      <div className="flex items-center justify-center gap-1 text-slate-455 font-bold mb-1">
+                                        <Plane className="w-3.5 h-3.5 text-rose-500" />
+                                        <span>Air</span>
+                                      </div>
+                                      <div className="mt-auto space-y-0.5">
+                                        <div className="text-[12px] font-black text-slate-200">
+                                          {airCalculatedTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} {currency}
+                                        </div>
+                                        <div className="text-[9px] text-rose-500 font-bold flex items-center justify-center gap-0.5">
+                                          <span>⚠️ {airCO2.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} kg</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-2 rounded-lg border border-slate-800 bg-[#34495e]/5 text-center flex flex-col justify-between h-20">
+                                      <div className="flex items-center justify-center gap-1 text-slate-450 font-bold mb-1">
+                                        <Truck className="w-3.5 h-3.5 text-yellow-500" />
+                                        <span>Route</span>
+                                      </div>
+                                      <div className="mt-auto space-y-0.5">
+                                        <div className="text-[12px] font-black text-slate-200">
+                                          {roadCalculatedTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} {currency}
+                                        </div>
+                                        <div className="text-[9px] text-yellow-500 font-bold flex items-center justify-center gap-0.5">
+                                          <span>{roadCO2.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} kg</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="text-[10px] text-slate-500 font-mono text-center pt-3 border-t border-slate-800/40">
+                                  Bilan CO₂ estimé sur <span className="text-slate-350 font-bold">{(grandTotals.g / 1000).toFixed(3)} t</span> de fret
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* 📦 ESTIMATEUR DE PALETTISATION & SIMULATEUR DE CHARGEMENT */}
