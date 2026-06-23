@@ -1941,6 +1941,7 @@ export default function App() {
           initialDetails={boxModalCtx.initialDetails}
           onClose={() => setBoxModalCtx(null)}
           onSave={saveBoxDetailsModal}
+          darkMode={darkMode}
         />
       )}
 
@@ -1950,37 +1951,42 @@ export default function App() {
           database={db}
           onClose={() => setIsMajBsdOpen(false)}
           onSaveDatabase={handleSaveDatabase}
+          darkMode={darkMode}
         />
       )}
 
       {/* Smart Raw Text / Excel Import Modal */}
       {isSmartImportOpen && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[9500] backdrop-blur-xs px-4">
-          <div className="bg-[#1a1d27] border border-indigo-550/70 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className={`border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 transition-all ${
+            darkMode ? 'bg-[#1a1d27] border-indigo-550/70 text-slate-100' : 'bg-white border-slate-205 text-slate-900'
+          }`}>
+            <div className={`flex items-center justify-between border-b pb-4 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
-                <h3 className="text-sm font-mono text-indigo-400 font-bold uppercase">
+                <h3 className={`text-sm font-mono font-bold uppercase ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                   ⚡ PORTAIL DE SAISIE RAPIDE DIRECTE
                 </h3>
               </div>
               <button
                 onClick={() => setIsSmartImportOpen(false)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg transition-colors cursor-pointer"
+                className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                  darkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-4">
-              <p className="text-xs text-slate-350 leading-relaxed">
+              <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-350' : 'text-slate-600'}`}>
                 Gagnez du temps en évitant la saisie manuelle cellule par cellule ! Collez vos données au choix : 
                 soit sous forme de <strong>liste texte directe</strong>, soit sous forme de <strong>grille tabulée</strong> copiée depuis Excel.
               </p>
 
               {/* Demo Pre-fills triggers */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-mono text-slate-500 uppercase font-black">Modèles de test :</span>
+                <span className={`text-[10px] font-mono uppercase font-black ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Modèles de test :</span>
                 <button
                   type="button"
                   onClick={() => setSmartImportRawText(
@@ -1988,7 +1994,9 @@ export default function App() {
                     "BLEU - XS:80, S:150, M:180, L:130, XL:50\n" +
                     "NOIR - S:90, M:200, L:150"
                   )}
-                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-705/60 cursor-pointer transition-all"
+                  className={`px-2.5 py-1 text-[10px] font-mono rounded border cursor-pointer transition-all ${
+                    darkMode ? 'bg-slate-800 hover:bg-slate-700 text-indigo-400 border-slate-705/60' : 'bg-indigo-50 hover:bg-indigo-100/80 text-indigo-700 border-indigo-200'
+                  }`}
                 >
                   📋 Saisie en ligne
                 </button>
@@ -2000,14 +2008,18 @@ export default function App() {
                     "CYAN\t60\t90\t120\t100\t40\n" +
                     "KAKI\t80\t140\t160\t110\t70"
                   )}
-                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-705/60 cursor-pointer transition-all"
+                  className={`px-2.5 py-1 text-[10px] font-mono rounded border cursor-pointer transition-all ${
+                    darkMode ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400 border-slate-705/60' : 'bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 border-emerald-200'
+                  }`}
                 >
                   📊 Grille Excel (Tabulé)
                 </button>
                 <button
                   type="button"
                   onClick={() => { setSmartImportRawText(""); }}
-                  className="px-2.5 py-1 text-[10px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-705/60 cursor-pointer transition-all ml-auto"
+                  className={`px-2.5 py-1 text-[10px] font-mono rounded border cursor-pointer transition-all ml-auto ${
+                    darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 border-slate-705/60' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-300'
+                  }`}
                 >
                   🗑️ Effacer
                 </button>
@@ -2015,7 +2027,7 @@ export default function App() {
 
               {/* Raw Input Text Area */}
               <div className="flex flex-col gap-1.5 font-sans">
-                <label className="text-[10px] font-mono text-slate-500 uppercase font-bold">
+                <label className={`text-[10px] font-mono uppercase font-bold ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Saisissez ou collez vos données ici :
                 </label>
                 <textarea
@@ -2023,12 +2035,18 @@ export default function App() {
                   onChange={(e) => setSmartImportRawText(e.target.value)}
                   placeholder={`ex: ROUGE - XS:120, S:180, M:240, L:150\nou copiez-collez tout un tableau rectangulaire d'une feuille Excel.`}
                   rows={8}
-                  className="w-full text-xs font-mono rounded-lg border px-3 py-2.5 focus:outline-none focus:border-indigo-500 bg-[#161a23] border-slate-804 text-slate-100 placeholder-slate-600 focus:ring-1 focus:ring-indigo-505/20"
+                  className={`w-full text-xs font-mono rounded-lg border px-3 py-2.5 focus:outline-none focus:border-indigo-505 transition-all ${
+                    darkMode
+                      ? 'bg-[#161a23] border-slate-750 text-slate-150 placeholder-slate-600'
+                      : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+                  }`}
                 />
               </div>
 
               {/* Smart format instructions status */}
-              <div className="bg-[#121522]/60 border border-slate-804 p-3 rounded-xl space-y-1.5 text-[11px] text-slate-400">
+              <div className={`border p-3 rounded-xl space-y-1.5 text-[11px] ${
+                darkMode ? 'bg-[#121522]/60 border-slate-750 text-slate-400' : 'bg-indigo-50/20 border-indigo-100 text-indigo-950/70'
+              }`}>
                 <span className="text-[10px] font-mono text-[#ff5000] font-black uppercase tracking-wider block">💡 Astuce Spécifications :</span>
                 <p>
                   Les nouvelles tailles importées hériteront automatiquement des capacités max (Cap), du poids par pièce, et des dimensions du gabarit carton définis sur vos gabarits modèles actuels !
@@ -2036,23 +2054,29 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-800 font-sans">
+            <div className={`flex flex-col sm:flex-row gap-3 pt-4 border-t font-sans ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <button
                 onClick={() => setIsSmartImportOpen(false)}
-                className="py-2.5 px-4 rounded-lg font-mono text-xs border border-slate-700 text-slate-400 hover:bg-slate-800 cursor-pointer transition-colors"
+                className={`py-2.5 px-4 rounded-lg font-mono text-xs border cursor-pointer transition-colors ${
+                  darkMode ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100 bg-white shadow-2xs'
+                }`}
               >
                 Annuler
               </button>
               <div className="flex-1 flex gap-2">
                 <button
                   onClick={() => handleSmartImport(smartImportRawText, 'merge')}
-                  className="flex-1 py-2.5 bg-[#222636] hover:bg-slate-800 text-slate-105 border border-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01] active:scale-[0.99]"
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01] active:scale-[0.99] border ${
+                    darkMode
+                      ? 'bg-[#222636] hover:bg-slate-800 text-slate-150 border-slate-700'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 shadow-2xs'
+                  }`}
                 >
                   ⚡ FUSIONNER AVEC L'EXISTANT
                 </button>
                 <button
                   onClick={() => handleSmartImport(smartImportRawText, 'replace')}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg hover:shadow-indigo-600/15 hover:scale-[1.01] active:scale-[0.99]"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg hover:brightness-110 hover:scale-[1.01] active:scale-[0.99]"
                 >
                   ⚠️ REMPLACER ET ÉCRASER TOUT
                 </button>
@@ -2065,14 +2089,18 @@ export default function App() {
       {/* PDF Selection Print Overlay */}
       {isPdfPrintSelectorOpen && (
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[9500] backdrop-blur-xs px-4">
-          <div className="bg-[#1a1d27] border border-amber-500/70 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-sm font-mono text-amber-500 font-bold uppercase">
+          <div className={`border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 transition-all ${
+            darkMode ? 'bg-[#1a1d27] border-amber-500/70 text-slate-100' : 'bg-white border-slate-205 text-slate-900'
+          }`}>
+            <div className={`flex items-center justify-between border-b pb-4 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+              <h3 className={`text-sm font-mono font-bold uppercase ${darkMode ? 'text-amber-500' : 'text-amber-600'}`}>
                 📄 CONFIGURATION DE L'IMPRESSION PDF
               </h3>
               <button
                 onClick={() => setIsPdfPrintSelectorOpen(false)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg"
+                className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                  darkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2080,7 +2108,7 @@ export default function App() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+                <span className={`text-[10px] font-mono uppercase tracking-widest font-bold block ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Sections à inclure :
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -2101,11 +2129,15 @@ export default function App() {
                         onClick={() => setPrintSections({ ...printSections, [key]: !active })}
                         className={`p-2.5 rounded-lg border text-left text-xs font-medium cursor-pointer transition-all flex items-center gap-2 ${
                           active
-                            ? 'border-amber-500 bg-amber-500/10 text-amber-400'
-                            : 'border-slate-800 bg-[#222636] text-slate-400'
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold'
+                            : (darkMode ? 'border-slate-800 bg-[#222636] text-slate-400 hover:text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100')
                         }`}
                       >
-                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center text-[10px] ${active ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-600'}`}>
+                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center text-[10px] ${
+                          active
+                            ? 'bg-amber-500 text-white border-amber-500'
+                            : (darkMode ? 'border-slate-600 bg-slate-900/40' : 'border-slate-300 bg-white')
+                        }`}>
                           {active && '✓'}
                         </div>
                         {label}
@@ -2116,7 +2148,7 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-bold block">
+                <span className={`text-[10px] font-mono uppercase tracking-widest font-bold block ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Colonnes du tableau à afficher :
                 </span>
                 <div className="grid grid-cols-3 gap-2">
@@ -2138,11 +2170,15 @@ export default function App() {
                         onClick={() => setPrintColumns({ ...printColumns, [key]: !active })}
                         className={`p-2 rounded-lg border text-left text-[11px] font-medium cursor-pointer transition-all flex items-center gap-1.5 ${
                           active
-                            ? 'border-amber-500 bg-amber-500/10 text-amber-400'
-                            : 'border-slate-800 bg-[#222636] text-slate-400'
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-505 font-bold'
+                            : (darkMode ? 'border-slate-800 bg-[#222636] text-slate-400 hover:text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100')
                         }`}
                       >
-                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center text-[8px] ${active ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-600'}`}>
+                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center text-[8px] ${
+                          active
+                            ? 'bg-amber-500 text-white border-amber-500'
+                            : (darkMode ? 'border-slate-600 bg-slate-900/40' : 'border-slate-300 bg-white')
+                        }`}>
                           {active && '✓'}
                         </div>
                         {label}
@@ -2153,27 +2189,31 @@ export default function App() {
               </div>
 
               {/* Iframe sandbox printing warning */}
-              <div className="bg-amber-500/10 border border-amber-500/25 p-3.5 rounded-xl text-xs space-y-1">
-                <p className="text-amber-400 font-bold flex items-center gap-1.5 font-mono text-[11px]">
+              <div className={`border p-3.5 rounded-xl text-xs space-y-1 ${
+                darkMode ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-200 text-amber-950/85'
+              }`}>
+                <p className={`font-bold flex items-center gap-1.5 font-mono text-[11px] ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
                   ⚠️ CONSEIL POUR L'IMPRESSION (IFRAME) :
                 </p>
-                <p className="text-slate-300 text-[11px] leading-relaxed">
+                <p className={`text-[11px] leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-755'}`}>
                   Si le bouton ci-dessous ne lance pas l'imprimante, c'est que l'aperçu de test AI Studio restreint l'accès. 
                   Veuillez ouvrir l'application dans son propre onglet via le bouton <b>"Ouvrir dans un nouvel onglet"</b> en haut à droite pour pouvoir exporter sans blocage !
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t border-slate-800">
+            <div className={`flex gap-3 pt-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <button
                 onClick={() => setIsPdfPrintSelectorOpen(false)}
-                className="flex-1 py-2.5 border border-slate-700 text-slate-400 rounded-lg font-semibold text-xs hover:bg-slate-800"
+                className={`flex-1 py-2.5 border rounded-lg font-semibold text-xs transition-colors cursor-pointer ${
+                  darkMode ? 'border-slate-705 text-slate-400 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100 bg-white shadow-2xs'
+                }`}
               >
                 Annuler
               </button>
               <button
                 onClick={handleTriggerPrint}
-                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg font-bold text-xs shadow-lg hover:shadow-xl hover:shadow-amber-500/15"
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-white rounded-lg font-bold text-xs shadow-lg hover:shadow-xl hover:shadow-amber-500/15 transition-all cursor-pointer"
               >
                 🖨️ IMPRIMER / PDF
               </button>
@@ -2185,14 +2225,18 @@ export default function App() {
       {/* SQL Import Backups Modal */}
       {isSqlImportOpen && (
         <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[9500] backdrop-blur-xs px-4">
-          <div className="bg-[#1a1d27] border border-blue-500/70 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-sm font-mono text-blue-400 font-bold uppercase">
+          <div className={`border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 transition-all ${
+            darkMode ? 'bg-[#1a1d27] border-blue-500/70 text-slate-100' : 'bg-white border-slate-205 text-slate-900'
+          }`}>
+            <div className={`flex items-center justify-between border-b pb-4 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+              <h3 className={`text-sm font-mono font-bold uppercase ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                 📥 CHARGER SNAPSHOT SQL
               </h3>
               <button
                 onClick={() => setIsSqlImportOpen(false)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 rounded-lg"
+                className={`p-1 rounded-lg transition-colors cursor-pointer ${
+                  darkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2213,28 +2257,38 @@ export default function App() {
                 e.preventDefault();
                 handleSqlFileSubmit(e.dataTransfer.files);
               }}
-              className="border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-505/5 p-8 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all"
+              className={`border-2 border-dashed p-8 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
+                darkMode
+                  ? 'border-slate-700 hover:border-blue-500 hover:bg-blue-500/5 bg-slate-900/10'
+                  : 'border-slate-300 hover:border-blue-600 hover:bg-blue-50 bg-slate-50 shadow-2xs'
+              }`}
             >
               <Upload className="w-10 h-10 text-blue-500" />
               <div className="text-center">
-                <p className="text-xs text-slate-200 font-semibold mb-1">
+                <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                   Glissez votre fichier de snapshot .sql ici
                 </p>
-                <p className="text-[10px] text-slate-500 font-mono">
+                <p className={`text-[10px] font-mono ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Ou cliquez pour parcourir vos dossiers locaux
                 </p>
               </div>
             </div>
 
             {sqlStatus && (
-              <div className="p-3 bg-slate-900 border border-slate-800 text-xs font-mono text-center rounded-lg text-blue-400">
+              <div className={`p-3 border text-xs font-mono text-center rounded-lg ${
+                darkMode
+                  ? 'bg-slate-900 border-slate-800 text-blue-400'
+                  : 'bg-blue-50 border-blue-105 text-blue-700'
+              }`}>
                 {sqlStatus}
               </div>
             )}
 
             <button
               onClick={() => setIsSqlImportOpen(false)}
-              className="w-full py-2.5 border border-slate-700 text-slate-300 rounded-lg text-xs hover:bg-slate-800 transition-all cursor-pointer"
+              className={`w-full py-2.5 border rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                darkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100 bg-white'
+              }`}
             >
               Fermer
             </button>
@@ -2288,7 +2342,7 @@ export default function App() {
               className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
                 darkMode
                   ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-400'
-                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="🗂️ MAJ BSD (Gabarits)"
             >
@@ -2301,7 +2355,7 @@ export default function App() {
               className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
                 darkMode
                   ? 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/25 text-blue-400'
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-900 font-extrabold'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="📸 CAPTURE D'ÉCRAN"
             >
@@ -2314,7 +2368,7 @@ export default function App() {
               className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
                 darkMode
                   ? 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/25 text-rose-500 hover:text-rose-400'
-                  : 'bg-red-750 hover:bg-red-850 border-red-800 text-white font-bold'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="🚪 SE DÉCONNECTER"
             >
@@ -2332,7 +2386,7 @@ export default function App() {
                     ? 'bg-amber-500 border-amber-400 text-slate-950 font-extrabold animate-pulse shadow-md shadow-amber-500/20'
                     : darkMode
                       ? 'bg-emerald-500/10 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
-                      : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white'
+                      : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
                 }`}
                 title={!hasGenerated ? "Cliquez ici pour recalculer et appliquer vos modifications !" : "Les calculs sont à jour"}
               >
@@ -2347,7 +2401,7 @@ export default function App() {
                 className={`px-2.5 py-1.5 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 ${
                   darkMode
                     ? 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500 hover:text-red-400'
-                    : 'bg-slate-100 hover:bg-slate-200 border-slate-350 text-slate-805'
+                    : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
                 }`}
                 title="Saisir à zéro"
               >
@@ -2356,7 +2410,7 @@ export default function App() {
               </button>
             ) : (
               <div className={`flex items-center gap-1 p-0.5 rounded-lg transition-all border ${
-                darkMode ? 'bg-red-500/10 border-red-500/40' : 'bg-red-50 border-red-350'
+                darkMode ? 'bg-red-500/10 border-red-500/40' : 'bg-red-55 border-red-350'
               }`}>
                 <span className={`text-[9px] font-bold px-1 uppercase font-mono ${darkMode ? 'text-red-400' : 'text-red-800'}`}>OK?</span>
                 <button
@@ -2383,7 +2437,7 @@ export default function App() {
               className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border hover:scale-[1.02] cursor-pointer transition-all flex items-center gap-1 ${
                 darkMode
                   ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-[#34d399]'
-                  : 'bg-emerald-800 hover:bg-emerald-950 border-emerald-850 text-white'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="Exporter vers Microsoft Excel"
             >
@@ -2396,7 +2450,7 @@ export default function App() {
               className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border hover:scale-[1.02] cursor-pointer transition-all flex items-center gap-1 ${
                 darkMode
                   ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-500'
-                  : 'bg-amber-800 hover:bg-amber-900 border-amber-850 text-white'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="Générer un PDF / Imprimer"
             >
@@ -2411,7 +2465,7 @@ export default function App() {
               className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border hover:scale-[1.02] cursor-pointer transition-all flex items-center gap-1 ${
                 darkMode
                   ? 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400'
-                  : 'bg-blue-800 hover:bg-blue-900 border-blue-850 text-white'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="Exporter la base au format SQL"
             >
@@ -2424,11 +2478,11 @@ export default function App() {
               className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
                 darkMode
                   ? 'bg-[#1f2430]/90 hover:bg-slate-800 border border-slate-700 text-slate-300'
-                  : 'bg-slate-100 hover:bg-slate-200 border border-slate-350 text-slate-805 font-bold'
+                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
               }`}
               title="Restaurer à partir d'un fichier SQL"
             >
-              <Upload className={`w-3 h-3 ${darkMode ? 'text-slate-300' : 'text-slate-850'}`} />
+              <Upload className={`w-3 h-3 ${darkMode ? 'text-slate-300' : 'text-white'}`} style={undefined} />
               <span>SQL Import</span>
             </button>
 
@@ -3354,19 +3408,31 @@ export default function App() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={handleAddColorTab}
-                            className="px-3 py-1.5 bg-[#ff5000]/10 hover:bg-[#ff5000]/20 border border-[#ff5000]/30 text-[#ff5000] font-sans font-bold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+                            className={`px-3 py-1.5 font-sans font-bold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1 ${
+                              darkMode
+                                ? 'bg-[#ff5000]/10 hover:bg-[#ff5000]/20 border border-[#ff5000]/30 text-[#ff5000]'
+                                : 'bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white shadow-md shadow-slate-800/10'
+                            }`}
                           >
                             <Plus className="w-3.5 h-3.5" /> ＋ Couleur
                           </button>
                           <button
                             onClick={handleRemoveActiveColorTab}
-                            className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                              darkMode
+                                ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500'
+                                : 'bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white shadow-md shadow-slate-800/10'
+                            }`}
                           >
                             <Trash2 className="w-3.5 h-3.5" /> － Couleur
                           </button>
                           <button
                             onClick={() => setIsSmartImportOpen(true)}
-                            className="px-3 py-1.5 bg-indigo-550/10 hover:bg-indigo-550/20 border border-indigo-550/30 text-indigo-500 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                              darkMode
+                                ? 'bg-indigo-550/10 hover:bg-indigo-550/20 border border-indigo-550/30 text-indigo-400'
+                                : 'bg-slate-800 hover:bg-slate-900 border border-slate-700 text-white shadow-md shadow-slate-800/10'
+                            }`}
                             title="Saisie ultra-rapide par copier-coller de texte simple ou de tableaux Excel"
                           >
                             <Sparkles className="w-3.5 h-3.5" /> ⚡ Saisie Rapide
