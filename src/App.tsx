@@ -46,6 +46,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import BoxModal from './components/BoxModal';
 import MajBsdModal from './components/MajBsdModal';
 import ScreenshotTool from './components/ScreenshotTool';
+import ParcelLabelModule from './components/ParcelLabelModule';
 import {
   OrderMeta,
   SizeDetails,
@@ -201,13 +202,13 @@ export default function App() {
   const [isColorInputExpanded, setIsColorInputExpanded] = useState<boolean>(true);
 
   // Active Input Section Tab (separates metadata, strategy, and color sheet editing)
-  const [activeInputTab, setActiveInputTab] = useState<'meta' | 'strategy' | 'colors' | 'packing_list' | 'breakdown' | 'summary' | 'saves'>('colors');
+  const [activeInputTab, setActiveInputTab] = useState<'meta' | 'strategy' | 'colors' | 'packing_list' | 'breakdown' | 'summary' | 'saves' | 'labels'>('colors');
 
   // Active page state for sidebar: 'saisie' (page 1: Saisie & Préparation) or 'suivi' (page 2: Suivi & Livrables)
   const [sidebarActivePage, setSidebarActivePage] = useState<'saisie' | 'suivi'>('saisie');
 
   // Controlled wrapper to set active inputs and automatically update the sidebar page grouping
-  const handleSetActiveInputTab = (tab: 'meta' | 'strategy' | 'colors' | 'packing_list' | 'breakdown' | 'summary' | 'saves') => {
+  const handleSetActiveInputTab = (tab: 'meta' | 'strategy' | 'colors' | 'packing_list' | 'breakdown' | 'summary' | 'saves' | 'labels') => {
     setActiveInputTab(tab);
     if (['meta', 'strategy', 'colors'].includes(tab)) {
       setSidebarActivePage('saisie');
@@ -2573,7 +2574,8 @@ export default function App() {
                 activeInputTab === 'colors' ? '⌨️ SAISIE COLISAGE' : 
                 activeInputTab === 'packing_list' ? '📦 PACKING LIST' : 
                 activeInputTab === 'breakdown' ? '📊 BREAKDOWN' : 
-                activeInputTab === 'summary' ? '📈 RECAPITULATIF' : '💾 SAUVEGARDES'
+                activeInputTab === 'summary' ? '📈 RECAPITULATIF' : 
+                activeInputTab === 'saves' ? '💾 SAUVEGARDES' : '🏷️ ÉTIQUETTES PARCELLES'
               }
             </span>
           </div>
@@ -2923,6 +2925,47 @@ export default function App() {
                   )}
                   {!isSidebarCollapsed && (
                     <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'saves' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                  )}
+                </button>
+
+                {/* RIBBON 8: ÉTIQUETTES / PARCEL LABELS */}
+                <button
+                  onClick={() => setActiveInputTab('labels')}
+                  className={`group flex items-center gap-3 transition-all border rounded-xl relative cursor-pointer hover:scale-[1.02] active:scale-[0.98] overflow-hidden ${
+                    isSidebarCollapsed 
+                      ? 'lg:w-12 lg:h-12 lg:justify-center p-0 lg:p-2' 
+                      : 'p-2.5 text-left w-full'
+                  } ${
+                    activeInputTab === 'labels'
+                      ? darkMode
+                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
+                        : 'bg-white border-[#ff5000] text-[#ff5005] shadow-sm shadow-[#ff5000]/15 font-bold'
+                      : darkMode
+                        ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
+                  }`}
+                  title="🏷️ ÉTIQUETTES : Impression d'étiquettes colis réelles A6"
+                >
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
+                      activeInputTab === 'labels' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-50 scale-y-0 group-hover:scale-y-50'
+                    }`}
+                  />
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'labels' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                    <Printer className="w-3.5 h-3.5" />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <div className="flex-1 min-w-0 pr-1 select-none">
+                      <div className="text-[10px] font-mono tracking-wider font-extrabold uppercase truncate">
+                        🏷️ ÉTIQUETTES A6
+                      </div>
+                      <div className={`text-[9px] hidden lg:block mt-0.5 font-sans truncate ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Impression étiquettes Colis
+                      </div>
+                    </div>
+                  )}
+                  {!isSidebarCollapsed && (
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'labels' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
                   )}
                 </button>
               </div>
@@ -5715,6 +5758,28 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                </motion.div>
+              )}
+
+              {activeInputTab === 'labels' && (
+                <motion.div
+                  key="labels-section"
+                  initial={{ opacity: 0, x: 15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -15 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <ParcelLabelModule
+                    results={results}
+                    colors={colors}
+                    meta={meta}
+                    darkMode={darkMode}
+                    triggerToast={triggerToast}
+                    globalPackingMode={globalPackingMode}
+                    forceSingleCarton={forceSingleCarton}
+                    maxSizesPerBox={maxSizesPerBox}
+                    computeColorResult={computeColorResult}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
