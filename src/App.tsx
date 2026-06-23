@@ -2563,7 +2563,7 @@ export default function App() {
         </div>
 
         {/* Mobile Header indicator explaining menu state */}
-        <div className="lg:hidden flex items-center justify-between w-full p-3 border rounded-xl font-sans text-xs font-bold transition-all print:hidden shadow-xs border-dashed z-30 sticky top-[60px] bg-slate-100/90 dark:bg-slate-900/95 backdrop-blur-md border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+        <div className="lg:hidden flex items-center justify-between w-full p-3 border rounded-xl font-sans text-xs font-bold transition-all print:hidden shadow-xs border-dashed z-30 sticky top-[60px] bg-[#37e8d3] backdrop-blur-md border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#4f8ef7] animate-pulse" />
             <span className="uppercase tracking-wider font-mono text-[11px]">
@@ -2965,7 +2965,7 @@ export default function App() {
                     <div className="space-y-4 pt-1">
                       {/* Sub-section: References */}
                       <div className="space-y-4">
-              <div className="text-[10px] font-mono tracking-widest text-[#ff5000] font-bold uppercase flex items-center gap-1">
+              <div className="text-[10px] font-mono tracking-widest text-[#ff5000] font-bold uppercase flex items-center gap-1 bg-[#34c3b8]">
                 <ChevronRight className="w-3.5 h-3.5" /> Références En-têtes
               </div>
 
