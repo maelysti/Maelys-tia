@@ -39,7 +39,9 @@ import {
   Ship,
   Zap,
   Tag,
-  Printer
+  Printer,
+  Crown,
+  Search
 } from 'lucide-react';
 
 import WelcomeScreen from './components/WelcomeScreen';
@@ -161,6 +163,7 @@ export default function App() {
   });
 
   const [activeColorIdx, setActiveColorIdx] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Saved snapshots lists history database
   const [savedLists, setSavedLists] = useState<LocalSaveListItem[]>(() => {
@@ -1930,8 +1933,19 @@ export default function App() {
   const grandTotals = getGrandTotalsSummary();
   const summaryUniqueSizes = getOverallUniqueSizes();
 
+  // Filter colors based on the e-commerce search query
+  const filteredColors = colors.filter(c => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      c.nom.toLowerCase().includes(query) ||
+      c.tailles.some(t => t.toLowerCase().includes(query)) ||
+      c.tailles.some(t => (c.sizes[t]?.sku || '').toLowerCase().includes(query))
+    );
+  });
+
   return (
-    <div className={`min-h-screen font-sans bg-grid-pattern ${darkMode ? 'bg-[#0a0e17] text-slate-100' : 'bg-[#f8fafc] text-slate-900'} transition-colors duration-300 pb-12`}>
+    <div className={`min-h-screen font-sans bg-grid-pattern ${darkMode ? 'bg-[#030a1c] text-slate-100' : 'bg-[#f4f6fb] text-slate-900'} transition-colors duration-300 pb-12`}>
       
       {/* Dynamic Modal components */}
       {boxModalCtx?.isOpen && (
@@ -2297,141 +2311,143 @@ export default function App() {
         </div>
       )}
       {/* HEADER & ACTIONS TOP BLOCK (STICKY) */}
-      <div className={`sticky top-0 z-40 print:hidden transition-all duration-300 border-b pb-1.5 shadow-sm ${
-        darkMode ? 'bg-[#0a0e17]/95 border-slate-800/80 shadow-black/25' : 'bg-white/95 border-slate-200/80 shadow-slate-100/50'
+      {/* Cdiscount Promo Ribbon */}
+      <div className="bg-[#FFE100] text-[#001e62] text-[10px] sm:text-xs py-1 px-4 font-black text-center flex items-center justify-center gap-1.5 overflow-hidden font-sans tracking-wide uppercase select-none border-b border-[#001e62]/10 print:hidden z-50 relative">
+        <Crown className="w-3.5 h-3.5 animate-pulse text-[#001e62]" />
+        <span>ESPACE FOURNISSEUR CDISCOUNT À VOLONTÉ • CALCULS LOGISTIQUES ET COLISAGE AUTOMATISÉ</span>
+        <span className="hidden md:inline bg-[#E51B22] text-white px-1.5 py-0.5 rounded text-[8.5px] font-mono ml-2 font-black">HOT PROMO</span>
+      </div>
+
+      <div className={`sticky top-0 z-40 print:hidden transition-all duration-300 border-b pb-1.5 shadow-md ${
+        darkMode ? 'bg-[#030c1d]/95 border-blue-900/30 shadow-black/25' : 'bg-[#001A4F] border-[#001135] shadow-slate-900/10'
       } backdrop-blur-md`}>
         {/* Sleek Top Bar containing GENERATE, Reset, Excel, PDF, SQL Export, SQL Import, Mode toggle */}
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2.5 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-tr from-[#ff3c00] via-[#ff5000] to-[#ffaa00] rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Package className="w-5 h-5 text-white animate-bounce" style={{ animationDuration: '3.5s' }} />
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-4">
+            {/* Cdiscount Replica Logo */}
+            <div className="flex items-center gap-1.5 select-none cursor-pointer">
+              <div className="bg-[#E51B22] text-white w-8 h-8 rounded-lg flex items-center justify-center font-black text-xl shadow-lg shadow-black/15">C</div>
+              <div className="flex flex-col -space-y-0.5">
+                <span className="text-white text-lg font-black tracking-tight leading-tight">discount</span>
+                <span className="text-[7.5px] font-black tracking-widest text-[#FFE100] uppercase font-mono">PARTENAIRE PRO</span>
+              </div>
             </div>
-            <div className="flex flex-col">
+
+            <div className="flex flex-col border-l border-white/10 pl-3">
               <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-black tracking-wider uppercase font-sans ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                  Andry <span className="text-[#ff5000]">Nantenaina</span>
+                <span className="text-xs font-black tracking-wider uppercase font-sans text-white">
+                  Andry <span className="text-[#FFE100]">Nantenaina</span>
                 </span>
                 <span className="relative flex h-2 w-2" title="Système de calcul connecté (Live)">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
               </div>
               <div className="flex items-center gap-1.5 -mt-0.5">
-                <span className="text-[8px] font-mono tracking-normal text-slate-400 font-bold uppercase py-0.5 px-1 rounded bg-slate-800/80 max-w-fit">
-                  PORTAIL FOURNISSEUR AGILÉ
+                <span className="text-[7.5px] font-mono tracking-normal text-blue-200 font-bold uppercase py-0.2 px-1 rounded bg-blue-950/80 max-w-fit">
+                  MARSEILLE-CARGO HUB
                 </span>
-                <span className="text-[7.5px] font-mono text-[#94a3b8] border-l border-slate-700/60 pl-1.5">
-                  HUB: MARSEILLE-CARGO
-                </span>
+              </div>
+            </div>
+
+            {/* Functional Search Bar */}
+            <div className="relative w-full max-w-xs hidden lg:block">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher couleur, SKU, taille..."
+                className="w-full pl-3 pr-9 py-1 bg-[#001135]/40 border border-blue-900/50 rounded-lg text-xs text-white placeholder:text-blue-200/50 focus:outline-none focus:ring-1 focus:ring-[#FFE100] focus:border-[#FFE100]"
+              />
+              <div className="absolute right-2.5 top-2 text-blue-300">
+                <Search className="w-3 h-3" />
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* CTA Generer styled as Cdiscount's Adding to Cart CTA button (Energetic Yellow/Orange) */}
             <button
               onClick={handleGenerateList}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-[#ff5000] to-[#ff8a00] hover:brightness-110 text-white font-bold rounded-lg text-[11px] transition-all focus:outline-none flex items-center gap-1.5 cursor-pointer shadow-md shadow-orange-500/10 hover:scale-[1.01] active:scale-[0.99] uppercase tracking-wider font-mono animate-pulse hover:animate-none"
+              className="px-3.5 py-1.5 bg-[#FFE100] hover:bg-[#ffe733] text-[#001e62] font-black rounded-lg text-[11px] transition-all focus:outline-none flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/15 hover:scale-[1.01] active:scale-[0.99] uppercase tracking-wider font-sans animate-pulse hover:animate-none"
             >
-              <Calculator className="w-3.5 h-3.5 text-white" />
-              <span>GÉNÉRER / COMPUTE</span>
+              <Calculator className="w-3.5 h-3.5 text-[#001e62]" />
+              <span>GÉNÉRER / CALCULER</span>
             </button>
 
-            {/* Admin / Utility actions moved from floating panel beside GÉNÉRER */}
+            {/* Admin / Utility actions */}
             <button
               onClick={() => setIsMajBsdOpen(true)}
-              className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
-                darkMode
-                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-400'
-                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
-              }`}
+              className="px-2 py-1.5 border border-white/10 hover:bg-white/5 rounded-lg text-[11px] font-bold text-blue-100 transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02]"
               title="🗂️ MAJ BSD (Gabarits)"
             >
-              <Database className="w-3 h-3" />
+              <Database className="w-3 h-3 text-[#FFE100]" />
               <span className="hidden sm:inline">Gabarits</span>
             </button>
 
             <button
               onClick={() => setIsCapturingScreen(true)}
-              className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
-                darkMode
-                  ? 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/25 text-blue-400'
-                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
-              }`}
+              className="px-2 py-1.5 border border-white/10 hover:bg-white/5 rounded-lg text-[11px] font-bold text-blue-100 transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02]"
               title="📸 CAPTURE D'ÉCRAN"
             >
-              <Camera className="w-3 h-3" />
+              <Camera className="w-3 h-3 text-blue-300" />
               <span className="hidden sm:inline">Capture</span>
             </button>
 
             <button
               onClick={() => setIsAuthenticated(false)}
-              className={`px-2 py-1 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02] ${
-                darkMode
-                  ? 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/25 text-rose-500 hover:text-rose-400'
-                  : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
-              }`}
+              className="px-2 py-1.5 border border-white/10 hover:bg-white/5 rounded-lg text-[11px] font-bold text-rose-200 hover:text-rose-100 transition-all cursor-pointer flex items-center gap-1 hover:scale-[1.02]"
               title="🚪 SE DÉCONNECTER"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-3 h-3 text-[#E51B22]" />
               <span className="hidden sm:inline">Déconnexion</span>
             </button>
 
-            <div className="h-4 w-px bg-slate-800/60 dark:bg-slate-700/60 mx-0.5" />
+            <div className="h-4 w-px bg-white/15 mx-0.5" />
 
             {results.length > 0 && (
               <button
                 onClick={handleGenerateList}
                 className={`px-3 py-1.5 text-[11px] font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] ${
                   !hasGenerated
-                    ? 'bg-amber-500 border-amber-400 text-slate-950 font-extrabold animate-pulse shadow-md shadow-amber-500/20'
-                    : darkMode
-                      ? 'bg-emerald-500/10 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-400'
-                      : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
+                    ? 'bg-[#E51B22] border-[#E51B22] text-white font-extrabold animate-pulse shadow-md shadow-red-500/20'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-white font-bold'
                 }`}
                 title={!hasGenerated ? "Cliquez ici pour recalculer et appliquer vos modifications !" : "Les calculs sont à jour"}
               >
                 <RefreshCw className={`w-3 h-3 ${!hasGenerated ? 'animate-spin' : ''}`} style={!hasGenerated ? { animationDuration: '2.5s' } : undefined} />
-                <span>{!hasGenerated ? 'REFRESH REQUIS' : 'REFRESH'}</span>
+                <span>{!hasGenerated ? 'RE-CALCUL REQUIS' : 'À JOUR'}</span>
               </button>
             )}
 
             {!showResetConfirm ? (
               <button
                 onClick={() => setShowResetConfirm(true)}
-                className={`px-2.5 py-1.5 border font-semibold rounded-lg text-[11px] transition-all cursor-pointer flex items-center gap-1 ${
-                  darkMode
-                    ? 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-500 hover:text-red-400'
-                    : 'bg-slate-800 hover:bg-slate-900 border-slate-700 text-white font-bold shadow-md shadow-slate-800/10'
-                }`}
+                className="px-2.5 py-1.5 border border-white/10 hover:bg-white/5 rounded-lg text-[11px] font-bold text-white transition-all cursor-pointer flex items-center gap-1"
                 title="Saisir à zéro"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className="w-3 h-3 text-[#FFE100]" />
                 <span>Réinitialiser</span>
               </button>
             ) : (
-              <div className={`flex items-center gap-1 p-0.5 rounded-lg transition-all border ${
-                darkMode ? 'bg-red-500/10 border-red-500/40' : 'bg-red-55 border-red-350'
-              }`}>
-                <span className={`text-[9px] font-bold px-1 uppercase font-mono ${darkMode ? 'text-red-400' : 'text-red-800'}`}>OK?</span>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg transition-all border border-red-500/40 bg-red-500/10 text-white">
+                <span className="text-[9px] font-black px-1 uppercase font-mono text-red-350">RESET?</span>
                 <button
                   onClick={handleResetScreen}
-                  className="px-2 py-0.5 bg-red-650 hover:bg-red-750 text-white font-bold rounded text-[9px] transition-all cursor-pointer"
+                  className="px-2 py-0.5 bg-[#E51B22] hover:bg-red-700 text-white font-bold rounded text-[9px] transition-all cursor-pointer"
                 >
                   Oui
                 </button>
                 <button
                   onClick={() => setShowResetConfirm(false)}
-                  className={`px-2 py-0.5 font-bold rounded text-[9px] transition-all cursor-pointer ${
-                    darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-800 hover:bg-slate-900 text-white'
-                  }`}
+                  className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-slate-200 font-bold rounded text-[9px] transition-all cursor-pointer"
                 >
                   Non
                 </button>
               </div>
             )}
 
-            <div className="h-4 w-px bg-slate-800/60 dark:bg-slate-700/60 mx-0.5" />
+            <div className="h-4 w-px bg-white/15 mx-0.5" />
 
             <button
               onClick={handleExcelExport}
@@ -2637,8 +2653,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'meta'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2647,10 +2663,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'meta' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'meta' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'meta' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'meta' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <FileText className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2664,7 +2680,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'meta' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'meta' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2678,8 +2694,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'strategy'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2688,10 +2704,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'strategy' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'strategy' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'strategy' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'strategy' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <Sliders className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2705,7 +2721,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'strategy' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'strategy' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2719,8 +2735,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'colors'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2729,10 +2745,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'colors' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'colors' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'colors' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'colors' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <Grid className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2746,7 +2762,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'colors' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'colors' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
               </div>
@@ -2774,8 +2790,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'packing_list'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2784,10 +2800,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'packing_list' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'packing_list' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'packing_list' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'packing_list' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <FileSpreadsheet className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2801,7 +2817,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'packing_list' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'packing_list' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2815,8 +2831,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'breakdown'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2825,10 +2841,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'breakdown' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'breakdown' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'breakdown' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'breakdown' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <Grid className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2842,7 +2858,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'breakdown' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'breakdown' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2856,8 +2872,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'summary'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/10 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2866,10 +2882,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'summary' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'summary' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-500 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'summary' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'summary' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <PieChart className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2883,7 +2899,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'summary' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'summary' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2897,8 +2913,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'saves'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5000] shadow-sm shadow-[#ff5000]/15 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/10 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2907,10 +2923,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'saves' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-50 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'saves' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-50 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'saves' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'saves' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <History className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2924,7 +2940,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'saves' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'saves' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
 
@@ -2938,8 +2954,8 @@ export default function App() {
                   } ${
                     activeInputTab === 'labels'
                       ? darkMode
-                        ? 'bg-[#2a1305] border-[#ff5000]/50 text-[#ff5000] shadow-md shadow-[#ff5000]/10'
-                        : 'bg-white border-[#ff5000] text-[#ff5005] shadow-sm shadow-[#ff5000]/15 font-bold'
+                        ? 'bg-[#001135] border-[#E51B22]/50 text-[#FFE100] shadow-md shadow-[#E51B22]/5 font-black'
+                        : 'bg-[#E51B22]/5 border-[#E51B22] text-[#E51B22] shadow-sm shadow-[#E51B22]/15 font-bold'
                       : darkMode
                         ? 'bg-[#161a23] border-slate-800 text-slate-400 hover:text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-xs'
@@ -2948,10 +2964,10 @@ export default function App() {
                 >
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 transition-transform duration-300 ${
-                      activeInputTab === 'labels' ? 'bg-[#ff5000] scale-y-100' : 'bg-slate-50 scale-y-0 group-hover:scale-y-50'
+                      activeInputTab === 'labels' ? 'bg-[#E51B22] scale-y-100' : 'bg-slate-50 scale-y-0 group-hover:scale-y-50'
                     }`}
                   />
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'labels' ? 'bg-[#ff5000]/10 text-[#ff5000]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${activeInputTab === 'labels' ? 'bg-[#E51B22]/10 text-[#E51B22] dark:text-[#FFE100]' : 'bg-slate-500/5 text-slate-500'} transition-colors ${isSidebarCollapsed ? 'ml-0' : 'ml-0.5'}`}>
                     <Printer className="w-3.5 h-3.5" />
                   </div>
                   {!isSidebarCollapsed && (
@@ -2965,7 +2981,7 @@ export default function App() {
                     </div>
                   )}
                   {!isSidebarCollapsed && (
-                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'labels' ? 'translate-x-[2px] text-[#ff5000]' : 'text-slate-600'}`} />
+                    <ChevronRight className={`w-3 h-3 ml-auto hidden lg:block transition-all duration-200 ${activeInputTab === 'labels' ? 'translate-x-[2px] text-[#E51B22] dark:text-[#FFE100]' : 'text-slate-600'}`} />
                   )}
                 </button>
               </div>
@@ -3411,41 +3427,52 @@ export default function App() {
                         darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-100/60 border-slate-200'
                       }`}>
                         <div className="flex flex-wrap gap-1.5">
-                          {colors.map((c, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => {
-                                setActiveColorIdx(idx);
-                              }}
-                              className={`px-3.5 py-2 rounded-lg text-xs font-sans font-bold transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${
-                                activeColorIdx === idx
-                                  ? darkMode
-                                    ? 'bg-[#2a1305] border border-[#ff5000]/50 text-[#ff5000] font-extrabold shadow-md'
-                                    : 'bg-[#ff5000]/5 border border-[#ff5000]/60 text-[#ff5000] font-extrabold shadow-sm'
-                                  : darkMode
-                                    ? 'bg-[#1a1d27] border border-slate-800/50 text-slate-400 hover:text-white hover:border-slate-700'
-                                    : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-950 hover:border-slate-350 shadow-xs'
-                              }`}
-                            >
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PALETTE[idx % PALETTE.length] }} />
-                              <span className="truncate max-w-[115px]">{c.nom || `COULEUR ${idx + 1}`}</span>
-                              {(() => {
-                                const sum = c.tailles.reduce((acc, t) => acc + (c.sizes[t]?.qtyTot || 0), 0);
-                                if (sum > 0) {
-                                  return (
-                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono leading-none ${
-                                      activeColorIdx === idx
-                                        ? 'bg-[#ff5000]/20 text-[#ff5000] font-black'
-                                        : 'bg-slate-500/10 text-slate-400'
-                                    }`}>
-                                      {sum}
-                                    </span>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </button>
-                          ))}
+                          {colors.map((c, idx) => {
+                            // Cdiscount dynamic color search matching logic
+                            const query = searchQuery.toLowerCase().trim();
+                            const isMatch = !query || 
+                              c.nom.toLowerCase().includes(query) ||
+                              c.tailles.some(t => t.toLowerCase().includes(query)) ||
+                              c.tailles.some(t => (c.sizes[t]?.sku || '').toLowerCase().includes(query));
+
+                            if (!isMatch) return null;
+
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setActiveColorIdx(idx);
+                                }}
+                                className={`px-3.5 py-2 rounded-lg text-xs font-sans font-bold transition-all flex items-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${
+                                  activeColorIdx === idx
+                                    ? darkMode
+                                      ? 'bg-[#001135] border border-[#E51B22]/60 text-[#FFE100] font-black shadow-md shadow-[#E51B22]/5'
+                                      : 'bg-[#E51B22]/5 border border-[#E51B22] text-[#E51B22] font-extrabold shadow-sm'
+                                    : darkMode
+                                      ? 'bg-[#001A4F]/25 border border-blue-950 text-slate-400 hover:text-white hover:border-slate-700'
+                                      : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-950 hover:border-slate-350 shadow-xs'
+                                }`}
+                              >
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PALETTE[idx % PALETTE.length] }} />
+                                <span className="truncate max-w-[115px]">{c.nom || `COULEUR ${idx + 1}`}</span>
+                                {(() => {
+                                  const sum = c.tailles.reduce((acc, t) => acc + (c.sizes[t]?.qtyTot || 0), 0);
+                                  if (sum > 0) {
+                                    return (
+                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono leading-none ${
+                                        activeColorIdx === idx
+                                          ? 'bg-[#E51B22]/20 text-[#E51B22] dark:text-[#FFE100] font-black'
+                                          : 'bg-slate-500/10 text-slate-400'
+                                      }`}>
+                                        {sum}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </button>
+                            );
+                          })}
                         </div>
 
                         <div className="flex flex-wrap gap-2">

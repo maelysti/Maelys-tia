@@ -43,9 +43,9 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
           borderColor: "rgba(59, 130, 246, 0.35)",
           transition: { duration: 0.4, ease: "easeOut" }
         }}
-        className="w-full max-w-md bg-[#111422]/95 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl p-8 text-center relative overflow-hidden"
+        className="w-full max-w-md bg-[#071638]/95 backdrop-blur-xl border border-blue-900/40 rounded-2xl shadow-2xl p-8 text-center relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#ff5000] to-[#ff9900]" />
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#E51B22] to-[#FFE100]" />
  
         <div className="flex justify-center mb-6">
           <motion.div
@@ -60,13 +60,13 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
             whileHover={{
               scale: 1.12,
               rotate: 8,
-              boxShadow: "0 10px 25px -4px rgba(255, 80, 0, 0.35)",
+              boxShadow: "0 10px 25px -4px rgba(255, 222, 0, 0.35)",
               transition: { type: "spring", stiffness: 300, damping: 15 }
             }}
             whileTap={{ scale: 0.95 }}
-            className="w-16 h-16 bg-gradient-to-tr from-[#ff5000] to-[#ff9a00] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20 cursor-pointer"
+            className="w-16 h-16 bg-[#E51B22] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-[#E51B22]/20 cursor-pointer text-3xl font-black font-sans"
           >
-            <Package className="w-8 h-8" />
+            C
           </motion.div>
         </div>
  
@@ -74,17 +74,18 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-          className="text-2xl font-black font-sans text-white tracking-tight"
+          className="text-2xl font-black font-sans text-white tracking-tight flex items-center justify-center gap-1"
         >
-          Andry <span className="text-[#ff5000]">Nantenaina</span>
+          <span>Andry</span> <span className="text-[#FFE100]">Nantenaina</span>
+          <span className="text-xs bg-[#E51B22] text-white px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider scale-90 ml-1">PRO</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, letterSpacing: "0.05em" }}
           animate={{ opacity: 1, letterSpacing: "0.15em" }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.45 }}
-          className="text-xs font-mono text-slate-400 mt-1 mb-8 uppercase tracking-widest"
+          className="text-xs font-mono text-blue-300 mt-1 mb-8 uppercase tracking-widest"
         >
-          LOGISTIQUE OFFICER
+          PORTAIL FOURNISSEUR CDISCOUNT
         </motion.p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,7 +98,7 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
                 setPassword(e.target.value);
                 if (error) setError('');
               }}
-              className="w-full text-center bg-[#181c28] border border-slate-800 rounded-lg py-3 px-4 text-white font-mono font-bold tracking-[0.2em] placeholder:text-slate-500 placeholder:tracking-normal focus:outline-none focus:border-[#ff5000] transition-all text-sm"
+              className="w-full text-center bg-[#001A4F]/60 border border-blue-900/60 rounded-lg py-3 px-4 text-white font-mono font-bold tracking-[0.2em] placeholder:text-blue-300/40 placeholder:tracking-normal focus:outline-none focus:border-[#FFE100] focus:ring-1 focus:ring-[#FFE100]/25 transition-all text-sm"
               autoFocus
             />
           </div>
@@ -108,7 +109,7 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="text-red-400 font-mono text-xs font-semibold"
+                className="text-rose-400 font-mono text-xs font-semibold"
               >
                 {error}
               </motion.p>
@@ -117,16 +118,16 @@ export default function WelcomeScreen({ onSuccess }: WelcomeScreenProps) {
 
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-[#ff5000] to-[#ff9900] hover:brightness-110 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:shadow-orange-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm cursor-pointer font-sans"
+            className="w-full py-3 bg-[#FFE100] hover:bg-[#fff04d] text-[#001A4F] font-black rounded-lg shadow-lg hover:shadow-[#FFE100]/10 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm cursor-pointer font-sans uppercase tracking-wider"
           >
-            <Lock className="w-4 h-4" />
-            ENTRER SÉCURISÉ
+            <Lock className="w-4 h-4 text-[#001A4F]" />
+            ACCÈS SÉCURISÉ LOGISTIQUE
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 flex items-center justify-center gap-2 text-[10px] font-mono text-slate-500">
+        <div className="mt-8 pt-6 border-t border-blue-900/30 flex items-center justify-center gap-2 text-[10px] font-mono text-blue-400/50">
           <Lock className="w-3 h-3" />
-          RESTRICTED TO LOGISTICS OFFICERS ONLY
+          CDISCOUNT CARGO PARTNER PORTAL
         </div>
       </motion.div>
     </div>

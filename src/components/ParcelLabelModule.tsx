@@ -486,7 +486,7 @@ export default function ParcelLabelModule({
         <div className="flex flex-wrap gap-2.5">
           <button
             onClick={handlePrintLabels}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-[#ff5000] hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer text-white font-extrabold text-[10px] font-mono tracking-wider uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/10"
+            className="px-4 py-2 bg-gradient-to-r from-[#E51B22] to-red-600 hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer text-white font-extrabold text-[10px] font-mono tracking-wider uppercase rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>IMPRIMER LES ({selectedCartonIds.size}) SÉLECTIONNÉS</span>
